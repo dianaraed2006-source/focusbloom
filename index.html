@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#7c5ce7">
+  <title>FocusBloom</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">🌱</div>
+        <div>
+          <strong>FocusBloom</strong>
+          <small>Study. Focus. Bloom.</small>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-link active" data-page="dashboard">🏠 <span>الرئيسية</span></button>
+        <button class="nav-link" data-page="timer">⏱️ <span>المؤقت</span></button>
+        <button class="nav-link" data-page="subjects">📚 <span>المواد</span></button>
+        <button class="nav-link" data-page="tasks">✅ <span>المهام</span></button>
+        <button class="nav-link" data-page="planner">📅 <span>المخطط</span></button>
+        <button class="nav-link" data-page="stats">📊 <span>الإحصائيات</span></button>
+        <button class="nav-link" data-page="achievements">🏆 <span>الإنجازات</span></button>
+        <button class="nav-link" data-page="profile">👤 <span>الملف الشخصي</span></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <button id="themeToggle" class="ghost-btn">🌙 الوضع الداكن</button>
+        <div class="mini-profile">
+          <div class="avatar" id="miniAvatar">D</div>
+          <div>
+            <strong id="miniName">Diana</strong>
+            <small id="miniMajor">Pharmacy</small>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="pageTitle">مرحبًا بكِ 👋</h1>
+          <p id="todayDate"></p>
+        </div>
+        <button class="primary-btn" data-jump="timer">ابدئي الدراسة</button>
+      </header>
+
+      <section id="dashboard" class="page active">
+        <div class="stats-grid">
+          <article class="card stat-card"><span>⏱️</span><strong id="todayFocus">0د</strong><small>دراسة اليوم</small></article>
+          <article class="card stat-card"><span>🔥</span><strong id="currentStreak">0 يوم</strong><small>السلسلة الحالية</small></article>
+          <article class="card stat-card"><span>📚</span><strong id="totalStudy">0د</strong><small>إجمالي الدراسة</small></article>
+          <article class="card stat-card"><span>✅</span><strong id="pendingTasks">0</strong><small>مهام متبقية</small></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="card plant-card">
+            <div class="card-head">
+              <h2>نبتة الدراسة</h2>
+              <span class="pill" id="plantLevel">المستوى 1</span>
+            </div>
+            <div class="plant-visual" id="plantVisual">🌱</div>
+            <h3 id="plantStage">بذرة</h3>
+            <p id="plantMessage">ابدئي أول جلسة حتى تنمو نبتتك.</p>
+            <div class="progress"><div id="plantProgress"></div></div>
+            <small id="plantNext">30 دقيقة للمرحلة التالية</small>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h2>مهام اليوم</h2>
+              <button class="text-btn" data-jump="tasks">عرض الكل</button>
+            </div>
+            <div id="dashboardTasks" class="list compact"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h2>المواد</h2>
+              <button class="text-btn" data-jump="subjects">إدارة</button>
+            </div>
+            <div id="dashboardSubjects" class="list compact"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h2>هدف اليوم</h2>
+              <strong id="goalLabel">0 / 120 دقيقة</strong>
+            </div>
+            <div class="progress"><div id="goalProgress"></div></div>
+            <p class="muted" id="goalMessage">ابدئي الآن وخذي أول خطوة.</p>
+          </article>
+
+          <article class="card span-2">
+            <div class="card-head">
+              <h2>آخر 7 أيام</h2>
+              <span class="pill" id="weekTotalPill">0د</span>
+            </div>
+            <div id="weeklyBars" class="weekly-bars"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="timer" class="page">
+        <div class="two-col">
+          <article class="card timer-card">
+            <div class="tabs">
+              <button class="tab active" data-mode="pomodoro">Pomodoro</button>
+              <button class="tab" data-mode="stopwatch">مؤقت عادي</button>
+            </div>
+
+            <div class="select-row">
+              <label>المادة
+                <select id="timerSubject"></select>
+              </label>
+              <label>المهمة
+                <select id="timerTask"></select>
+              </label>
+            </div>
+
+            <div id="timerDisplay" class="timer-display">25:00</div>
+            <p id="timerStatus" class="muted">جاهزة للتركيز</p>
+
+            <div class="timer-actions">
+              <button id="startTimer" class="primary-btn">ابدئي</button>
+              <button id="pauseTimer" class="secondary-btn">إيقاف مؤقت</button>
+              <button id="finishTimer" class="secondary-btn">إنهاء وحفظ</button>
+              <button id="resetTimer" class="danger-btn">إعادة</button>
+            </div>
+
+            <div class="settings-grid">
+              <label>دقائق التركيز<input id="focusMinutes" type="number" min="1" max="180"></label>
+              <label>الاستراحة القصيرة<input id="shortBreakMinutes" type="number" min="1" max="60"></label>
+              <label>الاستراحة الطويلة<input id="longBreakMinutes" type="number" min="1" max="90"></label>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><h2>آخر الجلسات</h2><button id="clearSessions" class="text-btn danger-text">مسح الكل</button></div>
+            <div id="sessionList" class="list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="subjects" class="page">
+        <article class="card">
+          <div class="card-head"><h2>المواد</h2><span class="pill" id="subjectsCount">0 مواد</span></div>
+          <form id="subjectForm" class="form-grid subject-form">
+            <input id="subjectName" placeholder="اسم المادة" required>
+            <input id="subjectColor" type="color" value="#7c5ce7">
+            <input id="subjectTarget" type="number" min="0" placeholder="الهدف بالساعات">
+            <button class="primary-btn" type="submit">إضافة مادة</button>
+          </form>
+          <div id="subjectsList" class="cards-list"></div>
+        </article>
+      </section>
+
+      <section id="tasks" class="page">
+        <article class="card">
+          <div class="card-head">
+            <h2>المهام</h2>
+            <select id="taskFilter" class="small-select">
+              <option value="all">الكل</option>
+              <option value="today">اليوم</option>
+              <option value="upcoming">القادمة</option>
+              <option value="completed">المكتملة</option>
+            </select>
+          </div>
+
+          <form id="taskForm" class="form-grid task-form">
+            <input id="taskTitle" placeholder="اسم المهمة" required>
+            <select id="taskSubject"></select>
+            <input id="taskDue" type="date">
+            <select id="taskPriority">
+              <option value="low">منخفضة</option>
+              <option value="medium" selected>متوسطة</option>
+              <option value="high">عالية</option>
+            </select>
+            <button class="primary-btn" type="submit">إضافة مهمة</button>
+          </form>
+
+          <div id="tasksList" class="list"></div>
+        </article>
+      </section>
+
+      <section id="planner" class="page">
+        <div class="two-col">
+          <article class="card">
+            <div class="card-head">
+              <button id="prevMonth" class="icon-btn">→</button>
+              <h2 id="calendarTitle"></h2>
+              <button id="nextMonth" class="icon-btn">←</button>
+            </div>
+            <div class="calendar-weekdays"><span>أحد</span><span>اثنين</span><span>ثلاثاء</span><span>أربعاء</span><span>خميس</span><span>جمعة</span><span>سبت</span></div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+          </article>
+
+          <article class="card">
+            <h2>إضافة موعد</h2>
+            <form id="eventForm" class="stack-form">
+              <input id="eventTitle" placeholder="عنوان الموعد" required>
+              <input id="eventDate" type="date" required>
+              <select id="eventType">
+                <option value="study">جلسة دراسة</option>
+                <option value="exam">امتحان</option>
+                <option value="assignment">واجب</option>
+              </select>
+              <button class="primary-btn">إضافة</button>
+            </form>
+            <h3>المواعيد القادمة</h3>
+            <div id="eventList" class="list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="stats" class="page">
+        <div class="stats-grid three">
+          <article class="card stat-card"><span>📅</span><strong id="weekStudy">0د</strong><small>هذا الأسبوع</small></article>
+          <article class="card stat-card"><span>🏆</span><strong id="longestSession">0د</strong><small>أطول جلسة</small></article>
+          <article class="card stat-card"><span>🍅</span><strong id="pomodoroCount">0</strong><small>جلسات Pomodoro</small></article>
+        </div>
+        <article class="card">
+          <h2>وقت الدراسة حسب المادة</h2>
+          <div id="subjectStats" class="bar-chart"></div>
+        </article>
+      </section>
+
+      <section id="achievements" class="page">
+        <article class="card">
+          <div class="card-head"><h2>الإنجازات</h2><span class="pill" id="achievementSummary">0 / 8</span></div>
+          <div id="achievementGrid" class="achievement-grid"></div>
+        </article>
+      </section>
+
+      <section id="profile" class="page">
+        <div class="two-col">
+          <article class="card profile-card">
+            <div class="avatar large" id="profileAvatar">D</div>
+            <h2 id="profileDisplayName">Diana</h2>
+            <p id="profileDisplayMajor" class="muted">Pharmacy Student</p>
+            <p id="profileDisplayUniversity" class="muted">Applied Science Private University</p>
+          </article>
+
+          <article class="card">
+            <h2>الإعدادات الشخصية</h2>
+            <form id="profileForm" class="stack-form">
+              <label>الاسم<input id="profileName"></label>
+              <label>التخصص<input id="profileMajor"></label>
+              <label>الجامعة<input id="profileUniversity"></label>
+              <label>هدف الدراسة اليومي بالدقائق<input id="dailyGoal" type="number" min="10" max="1440"></label>
+              <button class="primary-btn">حفظ التغييرات</button>
+            </form>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
