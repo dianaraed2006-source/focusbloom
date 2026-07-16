@@ -56,3 +56,14 @@ label{display:grid;gap:6px;text-align:right;color:var(--muted)}input,select,text
 @media(max-width:1150px){.drug-grid{grid-template-columns:repeat(2,1fr)}.drug-form{grid-template-columns:repeat(2,1fr)}.achievement-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){.app-shell{grid-template-columns:1fr}.sidebar{position:fixed;z-index:20;bottom:0;top:auto;height:auto;width:100%;padding:7px;border-left:0;border-top:1px solid var(--border);overflow-x:auto}.brand,.sidebar-bottom{display:none}.nav{grid-template-columns:repeat(12,1fr);display:grid}.nav-link{min-width:78px;text-align:center;justify-content:center;display:grid;font-size:11px;padding:9px 3px}.main{padding:16px 12px 95px}.dashboard-grid,.two-col{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.hero-visual{display:none}.select-row{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.stats-grid,.stats-grid.three{grid-template-columns:1fr 1fr}.drug-grid{grid-template-columns:1fr}.drug-form,.subject-form,.quiz-controls{grid-template-columns:1fr}.review-buttons{grid-template-columns:1fr 1fr}.trainer-options{grid-template-columns:1fr}.achievement-grid{grid-template-columns:1fr}.card{padding:16px}.hero h2{font-size:27px}.toolbar{width:100%}.search-input{min-width:0}.bar-row{grid-template-columns:90px 1fr 55px;font-size:12px}.timer-display{font-size:58px}}
+
+.medical-disclaimer{margin-top:10px;padding:11px 13px;border-radius:12px;background:#fff4d8;color:#744c00;border:1px solid #f0cf7a;line-height:1.6}
+body.dark .medical-disclaimer{background:#3b3019;color:#ffe7a3;border-color:#705b26}
+.drug-card details{border-top:1px solid var(--border);padding-top:9px;margin-top:9px}
+.drug-card summary{cursor:pointer;font-weight:700;color:var(--primary)}
+.safety-grid{display:grid;grid-template-columns:1fr;gap:7px;margin-top:9px}
+.safety-badge{display:block;padding:9px 10px;border-radius:11px;line-height:1.55;font-size:13px}
+.safety-badge.unsafe{background:#ffe3e8;color:#8e1e35;border:1px solid #ef9aaa}
+.safety-badge.caution{background:#fff3d8;color:#744c00;border:1px solid #edcc7b}
+.safety-badge.conditional{background:#e1f5ec;color:#176c4b;border:1px solid #8dceb5}
+.source-note{font-size:12px;color:var(--muted);border-top:1px dashed var(--border);padding-top:8px}

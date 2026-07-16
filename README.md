@@ -34,3 +34,12 @@
 - app.js
 
 إلى مستودع GitHub Pages في الجذر ثم انتظري إعادة النشر.
+
+
+## Medication Safety Upgrade
+- Includes a curated starter library of common medications.
+- Adds pregnancy, lactation, pediatric, geriatric, renal and hepatic considerations.
+- Adds important warnings, interactions and monitoring.
+- Uses cautious educational wording rather than absolute “safe/unsafe” claims.
+- Primary reference basis: FDA/DailyMed official product labeling.
+- Always verify the current official label and local clinical guidance.
