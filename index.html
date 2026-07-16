@@ -4,265 +4,366 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#7c5ce7">
-  <title>FocusBloom</title>
+  <meta name="description" content="FocusBloom Pharmacy - منصة دراسة ذكية لطلاب الصيدلة">
+  <title>FocusBloom Pharmacy</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="toast" class="toast"></div>
+<div id="toast" class="toast"></div>
 
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark">🌱</div>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">💊</div>
+      <div>
+        <strong>FocusBloom</strong>
+        <small>Pharmacy Edition</small>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-link active" data-page="dashboard">🏠 <span>الرئيسية</span></button>
+      <button class="nav-link" data-page="timer">⏱️ <span>المؤقت</span></button>
+      <button class="nav-link" data-page="subjects">📚 <span>المواد</span></button>
+      <button class="nav-link" data-page="drug-vault">💊 <span>Drug Vault</span></button>
+      <button class="nav-link" data-page="flashcards">🧠 <span>Flashcards</span></button>
+      <button class="nav-link" data-page="quiz">📝 <span>Quiz</span></button>
+      <button class="nav-link" data-page="planner">📅 <span>Planner</span></button>
+      <button class="nav-link" data-page="trainer">🧪 <span>Trainer</span></button>
+      <button class="nav-link" data-page="stats">📊 <span>الإحصائيات</span></button>
+      <button class="nav-link" data-page="achievements">🏆 <span>الإنجازات</span></button>
+      <button class="nav-link" data-page="assistant">🤖 <span>مساعد الصيدلة</span></button>
+      <button class="nav-link" data-page="profile">👤 <span>الملف الشخصي</span></button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <button id="themeToggle" class="ghost-btn">🌙 الوضع الداكن</button>
+      <div class="mini-profile">
+        <div class="avatar" id="miniAvatar">D</div>
         <div>
-          <strong>FocusBloom</strong>
-          <small>Study. Focus. Bloom.</small>
+          <strong id="miniName">Diana</strong>
+          <small id="miniMajor">Pharmacy Student</small>
         </div>
       </div>
+    </div>
+  </aside>
 
-      <nav class="nav">
-        <button class="nav-link active" data-page="dashboard">🏠 <span>الرئيسية</span></button>
-        <button class="nav-link" data-page="timer">⏱️ <span>المؤقت</span></button>
-        <button class="nav-link" data-page="subjects">📚 <span>المواد</span></button>
-        <button class="nav-link" data-page="tasks">✅ <span>المهام</span></button>
-        <button class="nav-link" data-page="planner">📅 <span>المخطط</span></button>
-        <button class="nav-link" data-page="stats">📊 <span>الإحصائيات</span></button>
-        <button class="nav-link" data-page="achievements">🏆 <span>الإنجازات</span></button>
-        <button class="nav-link" data-page="profile">👤 <span>الملف الشخصي</span></button>
-      </nav>
-
-      <div class="sidebar-bottom">
-        <button id="themeToggle" class="ghost-btn">🌙 الوضع الداكن</button>
-        <div class="mini-profile">
-          <div class="avatar" id="miniAvatar">D</div>
-          <div>
-            <strong id="miniName">Diana</strong>
-            <small id="miniMajor">Pharmacy</small>
-          </div>
-        </div>
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">مرحبًا بكِ في FocusBloom Pharmacy 👋</h1>
+        <p id="todayDate"></p>
       </div>
-    </aside>
+      <button class="primary-btn" data-jump="timer">ابدئي الدراسة</button>
+    </header>
 
-    <main class="main">
-      <header class="topbar">
+    <section id="dashboard" class="page active">
+      <div class="hero pharmacy-hero">
         <div>
-          <h1 id="pageTitle">مرحبًا بكِ 👋</h1>
-          <p id="todayDate"></p>
+          <span class="eyebrow">Made for Pharmacy Students</span>
+          <h2>نظّمي دراستك، احفظي الأدوية، وراجعي بذكاء.</h2>
+          <p>كل أدواتك في مكان واحد: مؤقت، بطاقات، اختبارات، بنك أدوية، خطة دراسة، وإحصائيات.</p>
+          <div class="hero-actions">
+            <button class="primary-btn" data-jump="trainer">ابدئي اختبارًا</button>
+            <button class="secondary-btn" data-jump="drug-vault">افتحي بنك الأدوية</button>
+          </div>
         </div>
-        <button class="primary-btn" data-jump="timer">ابدئي الدراسة</button>
-      </header>
+        <div class="hero-visual">⚕️</div>
+      </div>
 
-      <section id="dashboard" class="page active">
-        <div class="stats-grid">
-          <article class="card stat-card"><span>⏱️</span><strong id="todayFocus">0د</strong><small>دراسة اليوم</small></article>
-          <article class="card stat-card"><span>🔥</span><strong id="currentStreak">0 يوم</strong><small>السلسلة الحالية</small></article>
-          <article class="card stat-card"><span>📚</span><strong id="totalStudy">0د</strong><small>إجمالي الدراسة</small></article>
-          <article class="card stat-card"><span>✅</span><strong id="pendingTasks">0</strong><small>مهام متبقية</small></article>
-        </div>
+      <div class="stats-grid">
+        <article class="card stat-card"><span>⏱️</span><strong id="todayFocus">0د</strong><small>دراسة اليوم</small></article>
+        <article class="card stat-card"><span>🔥</span><strong id="currentStreak">0 يوم</strong><small>السلسلة الحالية</small></article>
+        <article class="card stat-card"><span>💊</span><strong id="drugCount">0</strong><small>أدوية محفوظة</small></article>
+        <article class="card stat-card"><span>🧠</span><strong id="flashcardDue">0</strong><small>بطاقات للمراجعة</small></article>
+      </div>
 
-        <div class="dashboard-grid">
-          <article class="card plant-card">
-            <div class="card-head">
-              <h2>نبتة الدراسة</h2>
-              <span class="pill" id="plantLevel">المستوى 1</span>
-            </div>
-            <div class="plant-visual" id="plantVisual">🌱</div>
-            <h3 id="plantStage">بذرة</h3>
-            <p id="plantMessage">ابدئي أول جلسة حتى تنمو نبتتك.</p>
-            <div class="progress"><div id="plantProgress"></div></div>
-            <small id="plantNext">30 دقيقة للمرحلة التالية</small>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <h2>مهام اليوم</h2>
-              <button class="text-btn" data-jump="tasks">عرض الكل</button>
-            </div>
-            <div id="dashboardTasks" class="list compact"></div>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <h2>المواد</h2>
-              <button class="text-btn" data-jump="subjects">إدارة</button>
-            </div>
-            <div id="dashboardSubjects" class="list compact"></div>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <h2>هدف اليوم</h2>
-              <strong id="goalLabel">0 / 120 دقيقة</strong>
-            </div>
-            <div class="progress"><div id="goalProgress"></div></div>
-            <p class="muted" id="goalMessage">ابدئي الآن وخذي أول خطوة.</p>
-          </article>
-
-          <article class="card span-2">
-            <div class="card-head">
-              <h2>آخر 7 أيام</h2>
-              <span class="pill" id="weekTotalPill">0د</span>
-            </div>
-            <div id="weeklyBars" class="weekly-bars"></div>
-          </article>
-        </div>
-      </section>
-
-      <section id="timer" class="page">
-        <div class="two-col">
-          <article class="card timer-card">
-            <div class="tabs">
-              <button class="tab active" data-mode="pomodoro">Pomodoro</button>
-              <button class="tab" data-mode="stopwatch">مؤقت عادي</button>
-            </div>
-
-            <div class="select-row">
-              <label>المادة
-                <select id="timerSubject"></select>
-              </label>
-              <label>المهمة
-                <select id="timerTask"></select>
-              </label>
-            </div>
-
-            <div id="timerDisplay" class="timer-display">25:00</div>
-            <p id="timerStatus" class="muted">جاهزة للتركيز</p>
-
-            <div class="timer-actions">
-              <button id="startTimer" class="primary-btn">ابدئي</button>
-              <button id="pauseTimer" class="secondary-btn">إيقاف مؤقت</button>
-              <button id="finishTimer" class="secondary-btn">إنهاء وحفظ</button>
-              <button id="resetTimer" class="danger-btn">إعادة</button>
-            </div>
-
-            <div class="settings-grid">
-              <label>دقائق التركيز<input id="focusMinutes" type="number" min="1" max="180"></label>
-              <label>الاستراحة القصيرة<input id="shortBreakMinutes" type="number" min="1" max="60"></label>
-              <label>الاستراحة الطويلة<input id="longBreakMinutes" type="number" min="1" max="90"></label>
-            </div>
-          </article>
-
-          <article class="card">
-            <div class="card-head"><h2>آخر الجلسات</h2><button id="clearSessions" class="text-btn danger-text">مسح الكل</button></div>
-            <div id="sessionList" class="list"></div>
-          </article>
-        </div>
-      </section>
-
-      <section id="subjects" class="page">
-        <article class="card">
-          <div class="card-head"><h2>المواد</h2><span class="pill" id="subjectsCount">0 مواد</span></div>
-          <form id="subjectForm" class="form-grid subject-form">
-            <input id="subjectName" placeholder="اسم المادة" required>
-            <input id="subjectColor" type="color" value="#7c5ce7">
-            <input id="subjectTarget" type="number" min="0" placeholder="الهدف بالساعات">
-            <button class="primary-btn" type="submit">إضافة مادة</button>
-          </form>
-          <div id="subjectsList" class="cards-list"></div>
+      <div class="dashboard-grid">
+        <article class="card plant-card">
+          <div class="card-head"><h2>نبتة الدراسة</h2><span class="pill" id="plantLevel">المستوى 1</span></div>
+          <div class="plant-visual" id="plantVisual">🌱</div>
+          <h3 id="plantStage">بذرة</h3>
+          <p id="plantMessage">ابدئي أول جلسة حتى تنمو نبتتك.</p>
+          <div class="progress"><div id="plantProgress"></div></div>
+          <small id="plantNext">30 دقيقة للمرحلة التالية</small>
         </article>
-      </section>
 
-      <section id="tasks" class="page">
+        <article class="card challenge-card">
+          <div class="card-head"><h2>تحدّي اليوم</h2><span class="pill">Daily Challenge</span></div>
+          <div class="challenge-icon">🎯</div>
+          <h3 id="dailyChallengeTitle"></h3>
+          <p id="dailyChallengeText" class="muted"></p>
+          <button id="completeChallenge" class="primary-btn">تم الإنجاز</button>
+        </article>
+
         <article class="card">
-          <div class="card-head">
-            <h2>المهام</h2>
-            <select id="taskFilter" class="small-select">
-              <option value="all">الكل</option>
-              <option value="today">اليوم</option>
-              <option value="upcoming">القادمة</option>
-              <option value="completed">المكتملة</option>
+          <div class="card-head"><h2>موادك</h2><button class="text-btn" data-jump="subjects">إدارة</button></div>
+          <div id="dashboardSubjects" class="list compact"></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><h2>مراجعة اليوم</h2><button class="text-btn" data-jump="flashcards">ابدئي</button></div>
+          <div id="dashboardReview" class="list compact"></div>
+        </article>
+
+        <article class="card span-2">
+          <div class="card-head"><h2>آخر 7 أيام</h2><span class="pill" id="weekTotalPill">0د</span></div>
+          <div id="weeklyBars" class="weekly-bars"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="timer" class="page">
+      <div class="two-col">
+        <article class="card timer-card">
+          <div class="tabs">
+            <button class="tab active" data-mode="pomodoro">25 / 5</button>
+            <button class="tab" data-mode="deep">50 / 10</button>
+            <button class="tab" data-mode="stopwatch">مؤقت حر</button>
+          </div>
+          <div class="select-row">
+            <label>المادة<select id="timerSubject"></select></label>
+            <label>المهمة<select id="timerTask"></select></label>
+          </div>
+          <div id="timerDisplay" class="timer-display">25:00</div>
+          <p id="timerStatus" class="muted">جاهزة للتركيز</p>
+          <div class="timer-actions">
+            <button id="startTimer" class="primary-btn">ابدئي</button>
+            <button id="pauseTimer" class="secondary-btn">إيقاف مؤقت</button>
+            <button id="finishTimer" class="secondary-btn">إنهاء وحفظ</button>
+            <button id="resetTimer" class="danger-btn">إعادة</button>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><h2>آخر الجلسات</h2><button id="clearSessions" class="text-btn danger-text">مسح الكل</button></div>
+          <div id="sessionList" class="list"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="subjects" class="page">
+      <article class="card">
+        <div class="card-head"><h2>مواد الصيدلة</h2><span class="pill" id="subjectsCount">0 مواد</span></div>
+        <form id="subjectForm" class="form-grid subject-form">
+          <input id="subjectName" placeholder="اسم المادة" required>
+          <input id="subjectColor" type="color" value="#7c5ce7">
+          <input id="subjectSlides" type="number" min="0" placeholder="عدد السلايدات">
+          <input id="subjectTarget" type="number" min="0" placeholder="الهدف بالساعات">
+          <button class="primary-btn" type="submit">إضافة مادة</button>
+        </form>
+        <div id="subjectsList" class="cards-list"></div>
+      </article>
+    </section>
+
+    <section id="drug-vault" class="page">
+      <article class="card">
+        <div class="card-head">
+          <div><h2>Drug Vault</h2><p class="muted">قاعدة بياناتك الشخصية للأدوية.</p></div>
+          <div class="toolbar">
+            <input id="drugSearch" class="search-input" placeholder="ابحثي عن دواء أو فئة">
+            <select id="drugMasteryFilter" class="small-select">
+              <option value="all">كل المستويات</option>
+              <option value="new">جديد</option>
+              <option value="learning">قيد الحفظ</option>
+              <option value="mastered">متقن</option>
             </select>
           </div>
+        </div>
 
-          <form id="taskForm" class="form-grid task-form">
-            <input id="taskTitle" placeholder="اسم المهمة" required>
-            <select id="taskSubject"></select>
-            <input id="taskDue" type="date">
-            <select id="taskPriority">
-              <option value="low">منخفضة</option>
-              <option value="medium" selected>متوسطة</option>
-              <option value="high">عالية</option>
-            </select>
-            <button class="primary-btn" type="submit">إضافة مهمة</button>
+        <form id="drugForm" class="drug-form">
+          <input id="drugGeneric" placeholder="المادة الفعالة" required>
+          <input id="drugBrand" placeholder="الاسم التجاري">
+          <input id="drugClass" placeholder="الفئة الدوائية" required>
+          <input id="drugUse" placeholder="الاستخدام">
+          <input id="drugSideEffects" placeholder="الآثار الجانبية">
+          <input id="drugMnemonic" placeholder="Mnemonic">
+          <select id="drugMastery">
+            <option value="new">جديد</option>
+            <option value="learning">قيد الحفظ</option>
+            <option value="mastered">متقن</option>
+          </select>
+          <button class="primary-btn">إضافة الدواء</button>
+        </form>
+
+        <div id="drugList" class="drug-grid"></div>
+      </article>
+    </section>
+
+    <section id="flashcards" class="page">
+      <div class="two-col">
+        <article class="card">
+          <div class="card-head"><h2>إضافة Flashcard</h2><span class="pill" id="flashcardCount">0</span></div>
+          <form id="flashcardForm" class="stack-form">
+            <input id="flashFront" placeholder="Front" required>
+            <textarea id="flashBack" placeholder="Back" required></textarea>
+            <select id="flashSubject"></select>
+            <button class="primary-btn">إضافة البطاقة</button>
           </form>
-
-          <div id="tasksList" class="list"></div>
+          <div id="flashcardList" class="list"></div>
         </article>
-      </section>
 
-      <section id="planner" class="page">
-        <div class="two-col">
-          <article class="card">
-            <div class="card-head">
-              <button id="prevMonth" class="icon-btn">→</button>
-              <h2 id="calendarTitle"></h2>
-              <button id="nextMonth" class="icon-btn">←</button>
+        <article class="card review-card">
+          <div class="card-head"><h2>مراجعة اليوم</h2><span class="pill" id="reviewDueCount">0 مستحقة</span></div>
+          <div id="reviewEmpty" class="empty-state">
+            <div>🎉</div><h3>لا توجد بطاقات مستحقة</h3><p class="muted">أضيفي بطاقات جديدة أو عودي لاحقًا.</p>
+          </div>
+          <div id="reviewArea" hidden>
+            <div id="reviewCard" class="flashcard">
+              <div id="reviewFront" class="flash-side"></div>
+              <div id="reviewBack" class="flash-side hidden"></div>
             </div>
-            <div class="calendar-weekdays"><span>أحد</span><span>اثنين</span><span>ثلاثاء</span><span>أربعاء</span><span>خميس</span><span>جمعة</span><span>سبت</span></div>
-            <div id="calendarGrid" class="calendar-grid"></div>
-          </article>
+            <button id="showAnswer" class="secondary-btn full">إظهار الإجابة</button>
+            <div id="reviewButtons" class="review-buttons" hidden>
+              <button data-rating="again" class="danger-btn">مرة أخرى</button>
+              <button data-rating="hard" class="secondary-btn">صعب</button>
+              <button data-rating="good" class="primary-btn">جيد</button>
+              <button data-rating="easy" class="success-btn">سهل</button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
 
-          <article class="card">
-            <h2>إضافة موعد</h2>
-            <form id="eventForm" class="stack-form">
-              <input id="eventTitle" placeholder="عنوان الموعد" required>
-              <input id="eventDate" type="date" required>
-              <select id="eventType">
-                <option value="study">جلسة دراسة</option>
-                <option value="exam">امتحان</option>
-                <option value="assignment">واجب</option>
+    <section id="quiz" class="page">
+      <div class="two-col">
+        <article class="card">
+          <h2>Quiz Generator</h2>
+          <div class="quiz-controls">
+            <label>المصدر
+              <select id="quizSource">
+                <option value="drugs">الأدوية</option>
+                <option value="flashcards">البطاقات</option>
               </select>
-              <button class="primary-btn">إضافة</button>
-            </form>
-            <h3>المواعيد القادمة</h3>
-            <div id="eventList" class="list"></div>
-          </article>
-        </div>
-      </section>
-
-      <section id="stats" class="page">
-        <div class="stats-grid three">
-          <article class="card stat-card"><span>📅</span><strong id="weekStudy">0د</strong><small>هذا الأسبوع</small></article>
-          <article class="card stat-card"><span>🏆</span><strong id="longestSession">0د</strong><small>أطول جلسة</small></article>
-          <article class="card stat-card"><span>🍅</span><strong id="pomodoroCount">0</strong><small>جلسات Pomodoro</small></article>
-        </div>
-        <article class="card">
-          <h2>وقت الدراسة حسب المادة</h2>
-          <div id="subjectStats" class="bar-chart"></div>
+            </label>
+            <label>عدد الأسئلة
+              <select id="quizCount">
+                <option>5</option><option>10</option><option>15</option>
+              </select>
+            </label>
+            <button id="generateQuiz" class="primary-btn">إنشاء اختبار</button>
+          </div>
+          <div id="quizArea"></div>
         </article>
-      </section>
 
-      <section id="achievements" class="page">
         <article class="card">
-          <div class="card-head"><h2>الإنجازات</h2><span class="pill" id="achievementSummary">0 / 8</span></div>
-          <div id="achievementGrid" class="achievement-grid"></div>
+          <h2>نتائجك</h2>
+          <div class="score-ring"><strong id="quizScore">—</strong><small>الدرجة</small></div>
+          <div id="quizHistory" class="list"></div>
         </article>
-      </section>
+      </div>
+    </section>
 
-      <section id="profile" class="page">
-        <div class="two-col">
-          <article class="card profile-card">
-            <div class="avatar large" id="profileAvatar">D</div>
-            <h2 id="profileDisplayName">Diana</h2>
-            <p id="profileDisplayMajor" class="muted">Pharmacy Student</p>
-            <p id="profileDisplayUniversity" class="muted">Applied Science Private University</p>
-          </article>
+    <section id="planner" class="page">
+      <div class="two-col">
+        <article class="card">
+          <h2>Study Planner</h2>
+          <form id="planForm" class="stack-form">
+            <input id="planTitle" placeholder="اسم الامتحان أو الخطة" required>
+            <select id="planSubject"></select>
+            <input id="planExamDate" type="date" required>
+            <input id="planChapters" type="number" min="1" placeholder="عدد الشباتر" required>
+            <input id="planSlides" type="number" min="0" placeholder="إجمالي السلايدات">
+            <button class="primary-btn">إنشاء خطة تلقائية</button>
+          </form>
+        </article>
 
-          <article class="card">
-            <h2>الإعدادات الشخصية</h2>
-            <form id="profileForm" class="stack-form">
-              <label>الاسم<input id="profileName"></label>
-              <label>التخصص<input id="profileMajor"></label>
-              <label>الجامعة<input id="profileUniversity"></label>
-              <label>هدف الدراسة اليومي بالدقائق<input id="dailyGoal" type="number" min="10" max="1440"></label>
-              <button class="primary-btn">حفظ التغييرات</button>
-            </form>
-          </article>
-        </div>
-      </section>
-    </main>
-  </div>
+        <article class="card">
+          <div class="card-head"><h2>خططك</h2><span class="pill" id="planCount">0</span></div>
+          <div id="planList" class="list"></div>
+        </article>
+      </div>
+    </section>
 
-  <script src="app.js"></script>
+    <section id="trainer" class="page">
+      <div class="two-col">
+        <article class="card trainer-card">
+          <div class="card-head"><h2>Pharmacy Trainer</h2><span class="pill" id="trainerProgress">0 / 0</span></div>
+          <div class="trainer-mode">
+            <button class="chip active" data-trainer="drug-class">Drug → Class</button>
+            <button class="chip" data-trainer="class-drug">Class → Drug</button>
+            <button class="chip" data-trainer="drug-use">Drug → Use</button>
+          </div>
+          <div id="trainerQuestion" class="trainer-question">أضيفي أدوية أولًا لبدء التدريب.</div>
+          <div id="trainerOptions" class="trainer-options"></div>
+          <button id="nextTrainer" class="primary-btn" hidden>السؤال التالي</button>
+        </article>
+
+        <article class="card">
+          <h2>الأخطاء السابقة</h2>
+          <div id="mistakeList" class="list"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="stats" class="page">
+      <div class="stats-grid three">
+        <article class="card stat-card"><span>📅</span><strong id="weekStudy">0د</strong><small>هذا الأسبوع</small></article>
+        <article class="card stat-card"><span>🏆</span><strong id="longestSession">0د</strong><small>أطول جلسة</small></article>
+        <article class="card stat-card"><span>🍅</span><strong id="pomodoroCount">0</strong><small>جلسات Pomodoro</small></article>
+      </div>
+      <article class="card">
+        <h2>وقت الدراسة حسب المادة</h2>
+        <div id="subjectStats" class="bar-chart"></div>
+      </article>
+    </section>
+
+    <section id="achievements" class="page">
+      <article class="card">
+        <div class="card-head"><h2>الإنجازات</h2><span class="pill" id="achievementSummary">0 / 12</span></div>
+        <div id="achievementGrid" class="achievement-grid"></div>
+      </article>
+    </section>
+
+    <section id="assistant" class="page">
+      <div class="two-col">
+        <article class="card">
+          <h2>AI Pharmacy Assistant</h2>
+          <p class="muted">نسخة محلية ذكية تعتمد على الأدوية الموجودة في Drug Vault.</p>
+          <form id="assistantForm" class="assistant-form">
+            <input id="assistantInput" placeholder="اكتبي اسم دواء أو فئة دوائية" required>
+            <button class="primary-btn">بحث</button>
+          </form>
+          <div id="assistantAnswer" class="assistant-answer">
+            <p class="muted">مثال: Omeprazole أو ARB</p>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>Scan Medicine</h2>
+          <div class="scan-box">
+            <input id="medicineImage" type="file" accept="image/*">
+            <div id="imagePreview" class="image-preview">📷</div>
+            <p class="muted">هذه النسخة تعرض الصورة فقط. التعرّف التلقائي على الدواء يحتاج API أو خدمة رؤية خارجية.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="profile" class="page">
+      <div class="two-col">
+        <article class="card profile-card">
+          <div class="avatar large" id="profileAvatar">D</div>
+          <h2 id="profileDisplayName">Diana</h2>
+          <p id="profileDisplayMajor" class="muted">Pharmacy Student</p>
+          <p id="profileDisplayUniversity" class="muted">Applied Science Private University</p>
+        </article>
+
+        <article class="card">
+          <h2>الإعدادات الشخصية</h2>
+          <form id="profileForm" class="stack-form">
+            <label>الاسم<input id="profileName"></label>
+            <label>التخصص<input id="profileMajor"></label>
+            <label>الجامعة<input id="profileUniversity"></label>
+            <label>هدف الدراسة اليومي بالدقائق<input id="dailyGoal" type="number" min="10" max="1440"></label>
+            <button class="primary-btn">حفظ التغييرات</button>
+          </form>
+        </article>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>

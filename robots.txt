@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dianaraed2006-source.github.io/focusbloom/sitemap.xml

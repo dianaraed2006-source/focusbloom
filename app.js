@@ -1,182 +1,117 @@
-const STORAGE_KEY="focusbloom-v1";
+const KEY="focusbloom-pharmacy-v1";
+const todayISO=()=>new Date().toISOString().slice(0,10);
 const defaultState={
   profile:{name:"Diana",major:"Pharmacy Student",university:"Applied Science Private University"},
-  settings:{dailyGoal:120,focusMinutes:25,shortBreak:5,longBreak:15,dark:false},
+  settings:{dailyGoal:120,dark:false},
   subjects:[
-    {id:"sub1",name:"الصيدلانيات",color:"#7c5ce7",targetHours:20},
-    {id:"sub2",name:"الكيمياء العضوية",color:"#4c9bd8",targetHours:15}
+    {id:"s1",name:"Pharmaceutics",color:"#7c5ce7",slides:120,targetHours:20},
+    {id:"s2",name:"Organic Chemistry II",color:"#4d9bd8",slides:90,targetHours:15},
+    {id:"s3",name:"Pharmacology",color:"#3aa57a",slides:0,targetHours:25},
+    {id:"s4",name:"Medicinal Chemistry",color:"#df7c5c",slides:0,targetHours:20}
   ],
-  tasks:[],sessions:[],events:[]
+  tasks:[],
+  sessions:[],
+  drugs:[
+    {id:"d1",generic:"Omeprazole",brand:"Losec",drugClass:"PPI",use:"GERD and peptic ulcer",sideEffects:"Headache, nausea, long-term B12 deficiency",mnemonic:"-prazole = PPI",mastery:"learning"},
+    {id:"d2",generic:"Losartan",brand:"Cozaar",drugClass:"ARB",use:"Hypertension and kidney protection",sideEffects:"Dizziness, hyperkalemia",mnemonic:"-sartan = ARB",mastery:"mastered"},
+    {id:"d3",generic:"Metformin",brand:"Glucophage",drugClass:"Biguanide",use:"Type 2 diabetes",sideEffects:"GI upset, lactic acidosis rarely",mnemonic:"METformin = metabolic first",mastery:"learning"},
+    {id:"d4",generic:"Amoxicillin",brand:"Amoxil",drugClass:"Penicillin antibiotic",use:"Bacterial infections",sideEffects:"Rash, diarrhea, allergy",mnemonic:"-cillin = penicillin",mastery:"new"}
+  ],
+  flashcards:[],
+  quizHistory:[],
+  plans:[],
+  mistakes:[],
+  completedChallenges:[],
+  challengeDate:"",
+  challengeIndex:0
 };
-let state=loadState();
-let currentPage="dashboard";
-let timerMode="pomodoro",timerRunning=false,timerInterval=null,timerSeconds=state.settings.focusMinutes*60;
-let stopwatchBase=0,stopwatchStartedAt=null;
-let calendarDate=new Date();
+let state=load();
+let timerMode="pomodoro",timerRunning=false,timerInterval=null,timerSeconds=1500,stopwatchBase=0,stopwatchStartedAt=null;
+let reviewQueue=[],currentReview=null,quizQuestions=[],trainerMode="drug-class",trainerQuestion=null,trainerIndex=0,trainerCorrect=0;
 
-function loadState(){try{return {...defaultState,...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")}}catch{return structuredClone(defaultState)}}
-function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+function load(){try{return {...structuredClone(defaultState),...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{return structuredClone(defaultState)}}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const fmt=m=>{m=Math.round(m);return m<60?`${m}د`:`${Math.floor(m/60)}س ${m%60}د`};
 const sessionMinutes=s=>Math.max(1,Math.round(s.durationSeconds/60));
-function toast(msg){const el=$("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)}
 function startOfDay(d=new Date()){const x=new Date(d);x.setHours(0,0,0,0);return x}
 function startOfWeek(d=new Date()){const x=startOfDay(d);const day=x.getDay();x.setDate(x.getDate()-(day===0?6:day-1));return x}
-function totals(){
-  const today=startOfDay(),week=startOfWeek();
-  return{
-    total:state.sessions.reduce((a,s)=>a+sessionMinutes(s),0),
-    today:state.sessions.filter(s=>new Date(s.endedAt)>=today).reduce((a,s)=>a+sessionMinutes(s),0),
-    week:state.sessions.filter(s=>new Date(s.endedAt)>=week).reduce((a,s)=>a+sessionMinutes(s),0)
-  }
-}
-function streak(){
-  const days=new Set(state.sessions.map(s=>startOfDay(new Date(s.endedAt)).toISOString()));
-  let c=startOfDay(),n=0;if(!days.has(c.toISOString()))c.setDate(c.getDate()-1);
-  while(days.has(c.toISOString())){n++;c.setDate(c.getDate()-1)}return n
-}
+function totals(){const td=startOfDay(),wk=startOfWeek();return{total:state.sessions.reduce((a,s)=>a+sessionMinutes(s),0),today:state.sessions.filter(s=>new Date(s.endedAt)>=td).reduce((a,s)=>a+sessionMinutes(s),0),week:state.sessions.filter(s=>new Date(s.endedAt)>=wk).reduce((a,s)=>a+sessionMinutes(s),0)}}
+function streak(){const days=new Set(state.sessions.map(s=>startOfDay(new Date(s.endedAt)).toISOString()));let d=startOfDay(),n=0;if(!days.has(d.toISOString()))d.setDate(d.getDate()-1);while(days.has(d.toISOString())){n++;d.setDate(d.getDate()-1)}return n}
 function subjectMinutes(id){return state.sessions.filter(s=>s.subjectId===id).reduce((a,s)=>a+sessionMinutes(s),0)}
-function plantInfo(total){
-  if(total<30)return{icon:"🌱",stage:"بذرة",next:30,from:0,msg:"ابدئي أول جلسة حتى تنمو نبتتك."};
-  if(total<120)return{icon:"🌿",stage:"برعم",next:120,from:30,msg:"أكملي ساعتين لتصبح نبتة صغيرة."};
-  if(total<600)return{icon:"🪴",stage:"نبتة صغيرة",next:600,from:120,msg:"أكملي 10 ساعات لتتفتح الزهرة."};
-  if(total<3000)return{icon:"🌸",stage:"زهرة",next:3000,from:600,msg:"أكملي 50 ساعة لتصبح شجرة."};
-  return{icon:"🌳",stage:"شجرة",next:total,from:total,msg:"رائع! بنيتِ عادة دراسة قوية."}
-}
-function navigate(page){
-  currentPage=page;
-  document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===page));
-  document.querySelectorAll(".nav-link").forEach(n=>n.classList.toggle("active",n.dataset.page===page));
-  const titles={dashboard:"مرحبًا بكِ 👋",timer:"جلسة تركيز",subjects:"المواد",tasks:"المهام",planner:"المخطط",stats:"الإحصائيات",achievements:"الإنجازات",profile:"الملف الشخصي"};
-  $("pageTitle").textContent=titles[page]||"FocusBloom";
-  window.scrollTo({top:0,behavior:"smooth"})
-}
-function render(){
-  applyTheme();renderProfile();renderSubjectOptions();renderDashboard();renderSubjects();renderTasks();renderSessions();renderPlanner();renderStats();renderAchievements();renderSettings()
-}
+function plantInfo(total){if(total<30)return{icon:"🌱",stage:"بذرة",next:30,from:0,msg:"ابدئي أول جلسة حتى تنمو نبتتك."};if(total<120)return{icon:"🌿",stage:"برعم",next:120,from:30,msg:"أكملي ساعتين لتصبح نبتة صغيرة."};if(total<600)return{icon:"🪴",stage:"نبتة صغيرة",next:600,from:120,msg:"أكملي 10 ساعات لتتفتح الزهرة."};if(total<3000)return{icon:"🌸",stage:"زهرة",next:3000,from:600,msg:"أكملي 50 ساعة لتصبح شجرة."};return{icon:"🌳",stage:"شجرة",next:total,from:total,msg:"رائع! بنيتِ عادة دراسة قوية."}}
+function nav(page){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===page));document.querySelectorAll(".nav-link").forEach(n=>n.classList.toggle("active",n.dataset.page===page));const titles={dashboard:"مرحبًا بكِ في FocusBloom Pharmacy 👋",timer:"جلسة تركيز",subjects:"مواد الصيدلة","drug-vault":"Drug Vault",flashcards:"Flashcards",quiz:"Quiz Generator",planner:"Study Planner",trainer:"Pharmacy Trainer",stats:"الإحصائيات",achievements:"الإنجازات",assistant:"مساعد الصيدلة",profile:"الملف الشخصي"};$("pageTitle").textContent=titles[page]||"FocusBloom";window.scrollTo({top:0,behavior:"smooth"});if(page==="flashcards")startReview();if(page==="trainer")startTrainer()}
+function render(){applyTheme();renderProfile();renderOptions();renderDashboard();renderSubjects();renderDrugs();renderFlashcards();renderSessions();renderPlans();renderTrainerMistakes();renderStats();renderAchievements()}
 function applyTheme(){document.body.classList.toggle("dark",state.settings.dark);$("themeToggle").textContent=state.settings.dark?"☀️ الوضع الفاتح":"🌙 الوضع الداكن"}
-function renderProfile(){
-  const p=state.profile;const initial=(p.name||"D").trim().charAt(0).toUpperCase();
-  $("miniAvatar").textContent=$("profileAvatar").textContent=initial;
-  $("miniName").textContent=$("profileDisplayName").textContent=p.name;
-  $("miniMajor").textContent=$("profileDisplayMajor").textContent=p.major;
-  $("profileDisplayUniversity").textContent=p.university;
-  $("profileName").value=p.name;$("profileMajor").value=p.major;$("profileUniversity").value=p.university
-}
-function renderDashboard(){
-  const t=totals(),s=streak(),pending=state.tasks.filter(x=>!x.completed).length,plant=plantInfo(t.total);
-  $("todayFocus").textContent=fmt(t.today);$("currentStreak").textContent=`${s} يوم`;$("totalStudy").textContent=fmt(t.total);$("pendingTasks").textContent=pending;
-  $("plantVisual").textContent=plant.icon;$("plantStage").textContent=plant.stage;$("plantMessage").textContent=plant.msg;
-  $("plantLevel").textContent=`المستوى ${Math.floor(t.total/600)+1}`;
-  const pp=plant.next===plant.from?100:Math.min(100,((t.total-plant.from)/(plant.next-plant.from))*100);
-  $("plantProgress").style.width=`${pp}%`;$("plantNext").textContent=plant.next===plant.from?"وصلتِ لأعلى مرحلة":`${fmt(plant.next-t.total)} للمرحلة التالية`;
-  $("goalLabel").textContent=`${t.today} / ${state.settings.dailyGoal} دقيقة`;$("goalProgress").style.width=`${Math.min(100,t.today/state.settings.dailyGoal*100)}%`;
-  $("goalMessage").textContent=t.today>=state.settings.dailyGoal?"أحسنتِ! حققتِ هدف اليوم.":"ابدئي الآن وخذي أول خطوة.";
-  const dTasks=state.tasks.filter(x=>!x.completed).slice(0,4);
-  $("dashboardTasks").innerHTML=dTasks.length?dTasks.map(x=>`<div class="item"><span>${esc(x.title)}</span><small>${priorityLabel(x.priority)}</small></div>`).join(""):'<div class="muted">لا توجد مهام حاليًا.</div>';
-  $("dashboardSubjects").innerHTML=state.subjects.length?state.subjects.slice(0,4).map(s=>`<div class="item"><span><b style="color:${s.color}">●</b> ${esc(s.name)}</span><strong>${fmt(subjectMinutes(s.id))}</strong></div>`).join(""):'<div class="muted">أضيفي أول مادة.</div>';
-  renderWeeklyBars();$("weekTotalPill").textContent=fmt(t.week)
-}
-function renderWeeklyBars(){
-  const days=[],labels=["أحد","اثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"];
-  for(let i=6;i>=0;i--){const d=startOfDay();d.setDate(d.getDate()-i);const next=new Date(d);next.setDate(next.getDate()+1);const m=state.sessions.filter(s=>{const x=new Date(s.endedAt);return x>=d&&x<next}).reduce((a,s)=>a+sessionMinutes(s),0);days.push({label:labels[d.getDay()],minutes:m})}
-  const max=Math.max(1,...days.map(d=>d.minutes));
-  $("weeklyBars").innerHTML=days.map(d=>`<div class="day-bar"><strong>${d.minutes?fmt(d.minutes):""}</strong><div class="bar" style="height:${Math.max(6,d.minutes/max*120)}px"></div><small>${d.label}</small></div>`).join("")
-}
-function renderSubjectOptions(){
-  const opts=state.subjects.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");
-  $("timerSubject").innerHTML=opts||'<option value="">بدون مادة</option>';
-  $("taskSubject").innerHTML='<option value="">بدون مادة</option>'+opts;
-  const taskOpts=state.tasks.filter(t=>!t.completed).map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join("");
-  $("timerTask").innerHTML='<option value="">بدون مهمة</option>'+taskOpts
-}
-function renderSubjects(){
-  $("subjectsCount").textContent=`${state.subjects.length} مواد`;
-  $("subjectsList").innerHTML=state.subjects.length?state.subjects.map(s=>{
-    const m=subjectMinutes(s.id),target=(s.targetHours||0)*60,p=target?Math.min(100,m/target*100):0;
-    return`<div class="card subject-card"><div class="subject-color" style="background:${s.color}"></div><div><div class="card-head"><strong>${esc(s.name)}</strong><small>${fmt(m)}</small></div><div class="progress subject-progress"><div style="width:${p}%;background:${s.color}"></div></div><small class="muted">${target?`${Math.round(p)}% من الهدف`:"لا يوجد هدف"}</small></div><button class="danger-btn" onclick="deleteSubject('${s.id}')">حذف</button></div>`
-  }).join(""):'<div class="muted">لا توجد مواد بعد.</div>'
-}
-function priorityLabel(p){return{low:"منخفضة",medium:"متوسطة",high:"عالية"}[p]||""}
-function renderTasks(){
-  const filter=$("taskFilter").value,today=startOfDay(),tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDate()+1);
-  let tasks=[...state.tasks];
-  if(filter==="today")tasks=tasks.filter(t=>t.dueDate&&new Date(t.dueDate)>=today&&new Date(t.dueDate)<tomorrow);
-  if(filter==="upcoming")tasks=tasks.filter(t=>t.dueDate&&new Date(t.dueDate)>=tomorrow&&!t.completed);
-  if(filter==="completed")tasks=tasks.filter(t=>t.completed);
-  $("tasksList").innerHTML=tasks.length?tasks.map(t=>{const s=state.subjects.find(x=>x.id===t.subjectId);return`<div class="item" style="${t.completed?'opacity:.55;text-decoration:line-through':''}"><div style="display:flex;gap:10px;align-items:center"><input style="width:auto" type="checkbox" ${t.completed?'checked':''} onchange="toggleTask('${t.id}')"><div class="item-main"><strong>${esc(t.title)}</strong><small>${s?esc(s.name):"بدون مادة"} · ${priorityLabel(t.priority)} ${t.dueDate?`· ${t.dueDate}`:""}</small></div></div><button class="danger-btn" onclick="deleteTask('${t.id}')">حذف</button></div>`}).join(""):'<div class="muted">لا توجد مهام مطابقة.</div>'
-}
-function renderSessions(){
-  const list=[...state.sessions].reverse().slice(0,10);
-  $("sessionList").innerHTML=list.length?list.map(s=>{const sub=state.subjects.find(x=>x.id===s.subjectId);return`<div class="item"><div class="item-main"><strong>${sub?esc(sub.name):"جلسة دراسة"}</strong><small>${s.type==="pomodoro"?"Pomodoro":"مؤقت عادي"} · ${new Date(s.endedAt).toLocaleDateString("ar-JO")}</small></div><strong>${fmt(sessionMinutes(s))}</strong></div>`}).join(""):'<div class="muted">لم تسجلي جلسات بعد.</div>'
-}
-function renderPlanner(){
-  const y=calendarDate.getFullYear(),m=calendarDate.getMonth(),monthNames=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-  $("calendarTitle").textContent=`${monthNames[m]} ${y}`;const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();let html="";
-  for(let i=0;i<first;i++)html+='<div class="calendar-day empty"></div>';
-  for(let d=1;d<=days;d++){const date=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`,ev=state.events.filter(e=>e.date===date);const isToday=date===new Date().toISOString().slice(0,10);html+=`<div class="calendar-day ${isToday?"today":""}"><strong>${d}</strong><div>${ev.map(e=>`<span class="event-dot ${e.type}" title="${esc(e.title)}"></span>`).join("")}</div></div>`}
-  $("calendarGrid").innerHTML=html;
-  const upcoming=[...state.events].filter(e=>e.date>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
-  $("eventList").innerHTML=upcoming.length?upcoming.map(e=>`<div class="item"><div class="item-main"><strong>${esc(e.title)}</strong><small>${e.date} · ${eventTypeLabel(e.type)}</small></div><button class="danger-btn" onclick="deleteEvent('${e.id}')">حذف</button></div>`).join(""):'<div class="muted">لا توجد مواعيد قادمة.</div>'
-}
-function eventTypeLabel(t){return{study:"جلسة دراسة",exam:"امتحان",assignment:"واجب"}[t]}
-function renderStats(){
-  const t=totals(),longest=state.sessions.length?Math.max(...state.sessions.map(sessionMinutes)):0;
-  $("weekStudy").textContent=fmt(t.week);$("longestSession").textContent=fmt(longest);$("pomodoroCount").textContent=state.sessions.filter(s=>s.type==="pomodoro").length;
-  const vals=state.subjects.map(s=>({...s,minutes:subjectMinutes(s.id)})),max=Math.max(1,...vals.map(v=>v.minutes));
-  $("subjectStats").innerHTML=vals.length?vals.map(v=>`<div class="bar-row"><span>${esc(v.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${v.minutes/max*100}%;background:${v.color}"></div></div><strong>${fmt(v.minutes)}</strong></div>`).join(""):'<div class="muted">أضيفي مواد وجلسات حتى تظهر الإحصائيات.</div>'
-}
-function achievementDefs(){
-  const t=totals(),s=streak(),pom=state.sessions.filter(x=>x.type==="pomodoro").length,done=state.tasks.filter(x=>x.completed).length;
-  return[
-    {icon:"🌱",title:"الخطوة الأولى",desc:"إكمال أول جلسة",ok:state.sessions.length>=1},
-    {icon:"⏱️",title:"ساعة تركيز",desc:"دراسة ساعة كاملة",ok:t.total>=60},
-    {icon:"📚",title:"طالب ملتزم",desc:"دراسة 10 ساعات",ok:t.total>=600},
-    {icon:"🔥",title:"3 أيام متتالية",desc:"سلسلة 3 أيام",ok:s>=3},
-    {icon:"🏆",title:"7 أيام متتالية",desc:"سلسلة 7 أيام",ok:s>=7},
-    {icon:"🍅",title:"Pomodoro Starter",desc:"إكمال 5 جلسات",ok:pom>=5},
-    {icon:"✅",title:"Task Master",desc:"إكمال 10 مهام",ok:done>=10},
-    {icon:"🌳",title:"Focus Tree",desc:"دراسة 50 ساعة",ok:t.total>=3000}
-  ]
-}
-function renderAchievements(){const defs=achievementDefs(),count=defs.filter(x=>x.ok).length;$("achievementSummary").textContent=`${count} / ${defs.length}`;$("achievementGrid").innerHTML=defs.map(a=>`<div class="achievement ${a.ok?"":"locked"}"><div class="achievement-icon">${a.icon}</div><h3>${a.title}</h3><p class="muted">${a.desc}</p><strong>${a.ok?"تم الفتح ✅":"مقفل 🔒"}</strong></div>`).join("")}
-function renderSettings(){
-  $("dailyGoal").value=state.settings.dailyGoal;$("focusMinutes").value=state.settings.focusMinutes;$("shortBreakMinutes").value=state.settings.shortBreak;$("longBreakMinutes").value=state.settings.longBreak
-}
-document.querySelectorAll(".nav-link").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.page)));
-document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.jump)));
+function renderProfile(){const p=state.profile,initial=(p.name||"D").trim().charAt(0).toUpperCase();$("miniAvatar").textContent=$("profileAvatar").textContent=initial;$("miniName").textContent=$("profileDisplayName").textContent=p.name;$("miniMajor").textContent=$("profileDisplayMajor").textContent=p.major;$("profileDisplayUniversity").textContent=p.university;$("profileName").value=p.name;$("profileMajor").value=p.major;$("profileUniversity").value=p.university;$("dailyGoal").value=state.settings.dailyGoal}
+function renderOptions(){const opts=state.subjects.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");["timerSubject","taskSubject","flashSubject","planSubject"].forEach(id=>$(id).innerHTML=(id==="taskSubject"?'<option value="">بدون مادة</option>':"")+opts);$("timerTask").innerHTML='<option value="">بدون مهمة</option>'+state.tasks.filter(t=>!t.completed).map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join("")}
+function renderDashboard(){const t=totals(),p=plantInfo(t.total);$("todayFocus").textContent=fmt(t.today);$("currentStreak").textContent=`${streak()} يوم`;$("drugCount").textContent=state.drugs.length;const due=getDueFlashcards();$("flashcardDue").textContent=due.length;$("plantVisual").textContent=p.icon;$("plantStage").textContent=p.stage;$("plantMessage").textContent=p.msg;$("plantLevel").textContent=`المستوى ${Math.floor(t.total/600)+1}`;const prog=p.next===p.from?100:Math.min(100,((t.total-p.from)/(p.next-p.from))*100);$("plantProgress").style.width=`${prog}%`;$("plantNext").textContent=p.next===p.from?"وصلتِ لأعلى مرحلة":`${fmt(p.next-t.total)} للمرحلة التالية`;$("dashboardSubjects").innerHTML=state.subjects.slice(0,4).map(s=>`<div class="item"><span><b style="color:${s.color}">●</b> ${esc(s.name)}</span><strong>${fmt(subjectMinutes(s.id))}</strong></div>`).join("");$("dashboardReview").innerHTML=due.length?due.slice(0,4).map(f=>`<div class="item"><span>${esc(f.front)}</span><span class="pill">مستحقة</span></div>`).join(""):'<div class="muted">لا توجد بطاقات مستحقة.</div>';renderWeeklyBars();$("weekTotalPill").textContent=fmt(t.week);renderChallenge()}
+function renderChallenge(){const list=[["احفظي 5 أدوية","أضيفي أو راجعي خمس مواد فعالة اليوم."],["راجعي 10 Flashcards","جلسة مراجعة سريعة بالتكرار المتباعد."],["ادرسي 50 دقيقة","استخدمي وضع 50/10 لمادة صعبة."],["اختبار الفئات","حاولي الحصول على 80% في Pharmacy Trainer."],["راجعي أخطاءك","افتحي قائمة الأخطاء السابقة وراجعيها."]];if(state.challengeDate!==todayISO()){state.challengeDate=todayISO();state.challengeIndex=new Date().getDate()%list.length;save()}const c=list[state.challengeIndex];$("dailyChallengeTitle").textContent=c[0];$("dailyChallengeText").textContent=c[1];const done=state.completedChallenges.includes(todayISO());$("completeChallenge").textContent=done?"تم الإنجاز ✅":"تم الإنجاز";$("completeChallenge").disabled=done}
+function renderWeeklyBars(){const labels=["أحد","اثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"],days=[];for(let i=6;i>=0;i--){const d=startOfDay();d.setDate(d.getDate()-i);const n=new Date(d);n.setDate(n.getDate()+1);const m=state.sessions.filter(s=>{const x=new Date(s.endedAt);return x>=d&&x<n}).reduce((a,s)=>a+sessionMinutes(s),0);days.push({label:labels[d.getDay()],minutes:m})}const max=Math.max(1,...days.map(d=>d.minutes));$("weeklyBars").innerHTML=days.map(d=>`<div class="day-bar"><strong>${d.minutes?fmt(d.minutes):""}</strong><div class="bar" style="height:${Math.max(6,d.minutes/max*120)}px"></div><small>${d.label}</small></div>`).join("")}
+function renderSubjects(){$("subjectsCount").textContent=`${state.subjects.length} مواد`;$("subjectsList").innerHTML=state.subjects.map(s=>{const m=subjectMinutes(s.id),target=(s.targetHours||0)*60,p=target?Math.min(100,m/target*100):0;return`<div class="card subject-card"><div class="subject-color" style="background:${s.color}"></div><div><div class="card-head"><strong>${esc(s.name)}</strong><small>${fmt(m)}</small></div><div class="progress subject-progress"><div style="width:${p}%;background:${s.color}"></div></div><small class="muted">${s.slides?`${s.slides} سلايد · `:""}${target?`${Math.round(p)}% من الهدف`:"لا يوجد هدف"}</small></div><button class="danger-btn" onclick="deleteSubject('${s.id}')">حذف</button></div>`}).join("")}
+function masteryLabel(m){return{new:"جديد",learning:"قيد الحفظ",mastered:"متقن"}[m]}
+function renderDrugs(){const q=$("drugSearch").value.toLowerCase(),f=$("drugMasteryFilter").value;let arr=state.drugs.filter(d=>[d.generic,d.brand,d.drugClass,d.use].join(" ").toLowerCase().includes(q));if(f!=="all")arr=arr.filter(d=>d.mastery===f);$("drugList").innerHTML=arr.length?arr.map(d=>`<div class="drug-card mastery-${d.mastery}"><div class="card-head"><h3>${esc(d.generic)}</h3><span class="pill">${masteryLabel(d.mastery)}</span></div><p><strong>Brand:</strong> ${esc(d.brand||"—")}</p><p><strong>Class:</strong> ${esc(d.drugClass)}</p><p><strong>Use:</strong> ${esc(d.use||"—")}</p><p><strong>Side effects:</strong> ${esc(d.sideEffects||"—")}</p><p><strong>Mnemonic:</strong> ${esc(d.mnemonic||"—")}</p><div class="tag-row"><button class="secondary-btn" onclick="cycleMastery('${d.id}')">تغيير مستوى الحفظ</button><button class="danger-btn" onclick="deleteDrug('${d.id}')">حذف</button></div></div>`).join(""):'<div class="muted">لا توجد نتائج.</div>'}
+function renderFlashcards(){$("flashcardCount").textContent=state.flashcards.length;$("flashcardList").innerHTML=state.flashcards.length?state.flashcards.map(f=>`<div class="item"><div class="item-main"><strong>${esc(f.front)}</strong><small>${esc(f.back)}</small></div><button class="danger-btn" onclick="deleteFlashcard('${f.id}')">حذف</button></div>`).join(""):'<div class="muted">لا توجد بطاقات.</div>'}
+function getDueFlashcards(){const now=Date.now();return state.flashcards.filter(f=>!f.nextReview||new Date(f.nextReview).getTime()<=now)}
+function startReview(){reviewQueue=getDueFlashcards();$("reviewDueCount").textContent=`${reviewQueue.length} مستحقة`;if(!reviewQueue.length){$("reviewEmpty").hidden=false;$("reviewArea").hidden=true;return}$("reviewEmpty").hidden=true;$("reviewArea").hidden=false;currentReview=reviewQueue[0];$("reviewFront").textContent=currentReview.front;$("reviewBack").textContent=currentReview.back;$("reviewBack").classList.add("hidden");$("showAnswer").hidden=false;$("reviewButtons").hidden=true}
+function reviewRate(r){if(!currentReview)return;const now=new Date(),days={again:0,hard:1,good:3,easy:7}[r];now.setDate(now.getDate()+days);currentReview.nextReview=now.toISOString();currentReview.interval=days;save();startReview();renderDashboard()}
+function renderSessions(){const list=[...state.sessions].reverse().slice(0,10);$("sessionList").innerHTML=list.length?list.map(s=>{const sub=state.subjects.find(x=>x.id===s.subjectId);return`<div class="item"><div class="item-main"><strong>${sub?esc(sub.name):"جلسة دراسة"}</strong><small>${s.mode} · ${new Date(s.endedAt).toLocaleDateString("ar-JO")}</small></div><strong>${fmt(sessionMinutes(s))}</strong></div>`}).join(""):'<div class="muted">لا توجد جلسات بعد.</div>'}
+function renderPlans(){$("planCount").textContent=state.plans.length;$("planList").innerHTML=state.plans.length?state.plans.map(p=>`<div class="item"><div class="item-main"><strong>${esc(p.title)}</strong><small>${p.days} أيام · ${p.chaptersPerDay} شابتر/يوم ${p.slidesPerDay?`· ${p.slidesPerDay} سلايد/يوم`:""}</small></div><button class="danger-btn" onclick="deletePlan('${p.id}')">حذف</button></div>`).join(""):'<div class="muted">لا توجد خطط.</div>'}
+function trainerData(){if(state.drugs.length<2)return null;const drug=state.drugs[Math.floor(Math.random()*state.drugs.length)];let answer,question,wrongPool;if(trainerMode==="drug-class"){question=drug.generic;answer=drug.drugClass;wrongPool=state.drugs.map(d=>d.drugClass)}else if(trainerMode==="class-drug"){question=drug.drugClass;answer=drug.generic;wrongPool=state.drugs.map(d=>d.generic)}else{question=drug.generic;answer=drug.use||"—";wrongPool=state.drugs.map(d=>d.use||"—")}const opts=[answer,...wrongPool.filter(x=>x&&x!==answer)].filter((x,i,a)=>a.indexOf(x)===i).slice(0,4).sort(()=>Math.random()-.5);return{drug,question,answer,options:opts}}
+function startTrainer(){trainerQuestion=trainerData();if(!trainerQuestion){$("trainerQuestion").textContent="أضيفي دواءين على الأقل لبدء التدريب.";$("trainerOptions").innerHTML="";return}$("trainerQuestion").textContent=trainerQuestion.question;$("trainerOptions").innerHTML=trainerQuestion.options.map(o=>`<button class="trainer-option" onclick="answerTrainer(this,'${esc(o).replace(/'/g,"&#39;")}')">${esc(o)}</button>`).join("");$("nextTrainer").hidden=true;$("trainerProgress").textContent=`${trainerCorrect} صحيح`}
+function answerTrainer(btn,ans){document.querySelectorAll(".trainer-option").forEach(b=>b.disabled=true);if(ans===trainerQuestion.answer){btn.classList.add("correct");trainerCorrect++;toast("إجابة صحيحة ✅")}else{btn.classList.add("wrong");document.querySelectorAll(".trainer-option").forEach(b=>{if(b.textContent===trainerQuestion.answer)b.classList.add("correct")});state.mistakes.unshift({id:crypto.randomUUID(),question:trainerQuestion.question,answer:trainerQuestion.answer,yourAnswer:ans,date:new Date().toISOString()});save();renderTrainerMistakes()}$("nextTrainer").hidden=false;$("trainerProgress").textContent=`${trainerCorrect} صحيح`}
+function renderTrainerMistakes(){$("mistakeList").innerHTML=state.mistakes.length?state.mistakes.slice(0,10).map(m=>`<div class="item"><div class="item-main"><strong>${esc(m.question)}</strong><small>الصحيح: ${esc(m.answer)} · إجابتك: ${esc(m.yourAnswer)}</small></div></div>`).join(""):'<div class="muted">لا توجد أخطاء مسجلة.</div>'}
+function renderStats(){const t=totals(),longest=state.sessions.length?Math.max(...state.sessions.map(sessionMinutes)):0;$("weekStudy").textContent=fmt(t.week);$("longestSession").textContent=fmt(longest);$("pomodoroCount").textContent=state.sessions.filter(s=>s.mode!=="stopwatch").length;const vals=state.subjects.map(s=>({...s,minutes:subjectMinutes(s.id)})),max=Math.max(1,...vals.map(v=>v.minutes));$("subjectStats").innerHTML=vals.map(v=>`<div class="bar-row"><span>${esc(v.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${v.minutes/max*100}%;background:${v.color}"></div></div><strong>${fmt(v.minutes)}</strong></div>`).join("")}
+function achievements(){const t=totals(),s=streak(),mastered=state.drugs.filter(d=>d.mastery==="mastered").length;return[
+["🌱","أول جلسة","إكمال أول جلسة",state.sessions.length>=1],["⏱️","ساعة تركيز","دراسة ساعة",t.total>=60],["📚","10 ساعات","دراسة 10 ساعات",t.total>=600],["🔥","3 أيام","سلسلة 3 أيام",s>=3],["🏆","7 أيام","سلسلة 7 أيام",s>=7],["💊","أول دواء","إضافة أول دواء",state.drugs.length>=1],["🧪","Drug Collector","إضافة 20 دواء",state.drugs.length>=20],["✅","Mastered","إتقان 10 أدوية",mastered>=10],["🧠","Flashcard Starter","إضافة 10 بطاقات",state.flashcards.length>=10],["📝","Quiz Master","إكمال 5 اختبارات",state.quizHistory.length>=5],["🎯","Planner","إنشاء أول خطة",state.plans.length>=1],["🌳","Focus Tree","دراسة 50 ساعة",t.total>=3000]
+]}
+function renderAchievements(){const a=achievements(),count=a.filter(x=>x[3]).length;$("achievementSummary").textContent=`${count} / ${a.length}`;$("achievementGrid").innerHTML=a.map(x=>`<div class="achievement ${x[3]?"":"locked"}"><div class="achievement-icon">${x[0]}</div><h3>${x[1]}</h3><p class="muted">${x[2]}</p><strong>${x[3]?"تم الفتح ✅":"مقفل 🔒"}</strong></div>`).join("")}
+
+document.querySelectorAll(".nav-link").forEach(b=>b.onclick=()=>nav(b.dataset.page));
+document.querySelectorAll("[data-jump]").forEach(b=>b.onclick=()=>nav(b.dataset.jump));
 $("todayDate").textContent=new Date().toLocaleDateString("ar-JO",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-$("themeToggle").onclick=()=>{state.settings.dark=!state.settings.dark;saveState();applyTheme()};
-$("subjectForm").onsubmit=e=>{e.preventDefault();state.subjects.push({id:crypto.randomUUID(),name:$("subjectName").value.trim(),color:$("subjectColor").value,targetHours:Number($("subjectTarget").value)||0});e.target.reset();$("subjectColor").value="#7c5ce7";saveState();render();toast("تمت إضافة المادة")};
-window.deleteSubject=id=>{if(!confirm("حذف المادة؟"))return;state.subjects=state.subjects.filter(s=>s.id!==id);saveState();render()};
-$("taskForm").onsubmit=e=>{e.preventDefault();state.tasks.push({id:crypto.randomUUID(),title:$("taskTitle").value.trim(),subjectId:$("taskSubject").value,dueDate:$("taskDue").value,priority:$("taskPriority").value,completed:false});e.target.reset();saveState();render();toast("تمت إضافة المهمة")};
-window.toggleTask=id=>{const t=state.tasks.find(x=>x.id===id);if(t)t.completed=!t.completed;saveState();render()};
-window.deleteTask=id=>{state.tasks=state.tasks.filter(t=>t.id!==id);saveState();render()};
-$("taskFilter").onchange=renderTasks;
-$("eventForm").onsubmit=e=>{e.preventDefault();state.events.push({id:crypto.randomUUID(),title:$("eventTitle").value.trim(),date:$("eventDate").value,type:$("eventType").value});e.target.reset();saveState();renderPlanner();toast("تمت إضافة الموعد")};
-window.deleteEvent=id=>{state.events=state.events.filter(e=>e.id!==id);saveState();renderPlanner()};
-$("prevMonth").onclick=()=>{calendarDate.setMonth(calendarDate.getMonth()-1);renderPlanner()};$("nextMonth").onclick=()=>{calendarDate.setMonth(calendarDate.getMonth()+1);renderPlanner()};
-$("profileForm").onsubmit=e=>{e.preventDefault();state.profile={name:$("profileName").value.trim(),major:$("profileMajor").value.trim(),university:$("profileUniversity").value.trim()};state.settings.dailyGoal=Math.max(10,Number($("dailyGoal").value)||120);saveState();render();toast("تم حفظ التغييرات")};
-$("focusMinutes").onchange=e=>{state.settings.focusMinutes=Math.max(1,Number(e.target.value)||25);saveState();if(!timerRunning&&timerMode==="pomodoro")resetTimer(false)};
-$("shortBreakMinutes").onchange=e=>{state.settings.shortBreak=Math.max(1,Number(e.target.value)||5);saveState()};
-$("longBreakMinutes").onchange=e=>{state.settings.longBreak=Math.max(1,Number(e.target.value)||15);saveState()};
-document.querySelectorAll(".tab").forEach(tab=>tab.onclick=()=>{if(timerRunning)return;document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));tab.classList.add("active");timerMode=tab.dataset.mode;resetTimer(false)});
-$("startTimer").onclick=startTimer;$("pauseTimer").onclick=pauseTimer;$("resetTimer").onclick=()=>resetTimer(false);$("finishTimer").onclick=finishTimer;
-$("clearSessions").onclick=()=>{if(confirm("مسح جميع الجلسات؟")){state.sessions=[];saveState();render()}};
-function formatTimer(sec){const m=Math.floor(sec/60).toString().padStart(2,"0"),s=Math.floor(sec%60).toString().padStart(2,"0");return`${m}:${s}`}
-function updateTimerDisplay(){$("timerDisplay").textContent=formatTimer(timerSeconds)}
-function startTimer(){
-  if(timerRunning)return;timerRunning=true;$("timerStatus").textContent="جلسة تركيز جارية...";
-  if(timerMode==="stopwatch"&&!stopwatchStartedAt)stopwatchStartedAt=Date.now();
-  timerInterval=setInterval(()=>{if(timerMode==="pomodoro"){timerSeconds--;if(timerSeconds<=0){saveSession(state.settings.focusMinutes*60,"pomodoro");toast("أحسنتِ! انتهت الجلسة");resetTimer(false)}}else timerSeconds=Math.floor((stopwatchBase+(Date.now()-stopwatchStartedAt))/1000);updateTimerDisplay()},250)
-}
-function pauseTimer(){if(!timerRunning)return;clearInterval(timerInterval);timerRunning=false;if(timerMode==="stopwatch"&&stopwatchStartedAt){stopwatchBase+=Date.now()-stopwatchStartedAt;stopwatchStartedAt=null}$("timerStatus").textContent="متوقف مؤقتًا"}
-function finishTimer(){
-  let sec=timerMode==="pomodoro"?state.settings.focusMinutes*60-timerSeconds:timerSeconds;
-  if(timerMode==="stopwatch"&&timerRunning&&stopwatchStartedAt)sec=Math.floor((stopwatchBase+(Date.now()-stopwatchStartedAt))/1000);
-  if(sec<1){toast("لا يوجد وقت لحفظه");return}saveSession(sec,timerMode);resetTimer(false);toast("تم حفظ الجلسة")
-}
-function resetTimer(){clearInterval(timerInterval);timerRunning=false;stopwatchBase=0;stopwatchStartedAt=null;timerSeconds=timerMode==="pomodoro"?state.settings.focusMinutes*60:0;$("timerStatus").textContent="جاهزة للتركيز";updateTimerDisplay()}
-function saveSession(durationSeconds,type){state.sessions.push({id:crypto.randomUUID(),subjectId:$("timerSubject").value,taskId:$("timerTask").value,durationSeconds,type,endedAt:new Date().toISOString()});saveState();render()}
-render();updateTimerDisplay();
+$("themeToggle").onclick=()=>{state.settings.dark=!state.settings.dark;save();applyTheme()};
+$("completeChallenge").onclick=()=>{if(!state.completedChallenges.includes(todayISO()))state.completedChallenges.push(todayISO());save();renderChallenge();toast("أحسنتِ! تم إنجاز التحدي")};
+
+$("subjectForm").onsubmit=e=>{e.preventDefault();state.subjects.push({id:crypto.randomUUID(),name:$("subjectName").value.trim(),color:$("subjectColor").value,slides:Number($("subjectSlides").value)||0,targetHours:Number($("subjectTarget").value)||0});e.target.reset();$("subjectColor").value="#7c5ce7";save();render();toast("تمت إضافة المادة")};
+window.deleteSubject=id=>{state.subjects=state.subjects.filter(s=>s.id!==id);save();render()};
+
+$("drugForm").onsubmit=e=>{e.preventDefault();state.drugs.push({id:crypto.randomUUID(),generic:$("drugGeneric").value.trim(),brand:$("drugBrand").value.trim(),drugClass:$("drugClass").value.trim(),use:$("drugUse").value.trim(),sideEffects:$("drugSideEffects").value.trim(),mnemonic:$("drugMnemonic").value.trim(),mastery:$("drugMastery").value});e.target.reset();save();render();toast("تمت إضافة الدواء")};
+$("drugSearch").oninput=renderDrugs;$("drugMasteryFilter").onchange=renderDrugs;
+window.deleteDrug=id=>{state.drugs=state.drugs.filter(d=>d.id!==id);save();render()};
+window.cycleMastery=id=>{const d=state.drugs.find(x=>x.id===id),order=["new","learning","mastered"];d.mastery=order[(order.indexOf(d.mastery)+1)%3];save();render()};
+
+$("flashcardForm").onsubmit=e=>{e.preventDefault();state.flashcards.push({id:crypto.randomUUID(),front:$("flashFront").value.trim(),back:$("flashBack").value.trim(),subjectId:$("flashSubject").value,nextReview:new Date().toISOString(),interval:0});e.target.reset();save();render();startReview();toast("تمت إضافة البطاقة")};
+window.deleteFlashcard=id=>{state.flashcards=state.flashcards.filter(f=>f.id!==id);save();render();startReview()};
+$("showAnswer").onclick=()=>{$("reviewBack").classList.remove("hidden");$("showAnswer").hidden=true;$("reviewButtons").hidden=false};
+document.querySelectorAll("[data-rating]").forEach(b=>b.onclick=()=>reviewRate(b.dataset.rating));
+
+$("generateQuiz").onclick=()=>{const count=Number($("quizCount").value),source=$("quizSource").value;if(source==="drugs"){if(state.drugs.length<4){toast("أضيفي 4 أدوية على الأقل");return}quizQuestions=Array.from({length:Math.min(count,state.drugs.length)},(_,i)=>{const d=state.drugs[i%state.drugs.length],answer=d.drugClass,opts=[answer,...state.drugs.map(x=>x.drugClass).filter(x=>x!==answer)].filter((x,i,a)=>a.indexOf(x)===i).slice(0,4).sort(()=>Math.random()-.5);return{q:`ما الفئة الدوائية لـ ${d.generic}؟`,answer,opts}})}else{if(state.flashcards.length<4){toast("أضيفي 4 بطاقات على الأقل");return}quizQuestions=state.flashcards.slice(0,count).map(f=>{const answer=f.back,opts=[answer,...state.flashcards.map(x=>x.back).filter(x=>x!==answer)].slice(0,3).sort(()=>Math.random()-.5);return{q:f.front,answer,opts}})}$("quizArea").innerHTML=quizQuestions.map((q,i)=>`<div class="quiz-question"><strong>${i+1}. ${esc(q.q)}</strong><div class="quiz-options">${q.opts.map(o=>`<button class="quiz-option" data-q="${i}" data-a="${esc(o)}">${esc(o)}</button>`).join("")}</div></div>`).join("")+`<button id="submitQuiz" class="primary-btn full" style="margin-top:14px">إنهاء الاختبار</button>`;document.querySelectorAll(".quiz-option").forEach(b=>b.onclick=()=>{document.querySelectorAll(`.quiz-option[data-q="${b.dataset.q}"]`).forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});$("submitQuiz").onclick=submitQuiz};
+function submitQuiz(){let correct=0;quizQuestions.forEach((q,i)=>{const s=document.querySelector(`.quiz-option.selected[data-q="${i}"]`);if(s&&s.dataset.a===q.answer)correct++});const pct=Math.round(correct/quizQuestions.length*100);$("quizScore").textContent=`${pct}%`;state.quizHistory.unshift({id:crypto.randomUUID(),date:new Date().toISOString(),score:pct,count:quizQuestions.length});save();$("quizHistory").innerHTML=state.quizHistory.slice(0,8).map(h=>`<div class="item"><span>${new Date(h.date).toLocaleDateString("ar-JO")}</span><strong>${h.score}%</strong></div>`).join("");toast("تم حفظ النتيجة")}
+
+$("planForm").onsubmit=e=>{e.preventDefault();const exam=new Date($("planExamDate").value),today=startOfDay(),days=Math.max(1,Math.ceil((exam-today)/86400000)),chap=Number($("planChapters").value),slides=Number($("planSlides").value)||0;state.plans.push({id:crypto.randomUUID(),title:$("planTitle").value.trim(),subjectId:$("planSubject").value,examDate:$("planExamDate").value,days,chaptersPerDay:Math.ceil(chap/days),slidesPerDay:slides?Math.ceil(slides/days):0});e.target.reset();save();renderPlans();renderAchievements();toast("تم إنشاء الخطة")};
+window.deletePlan=id=>{state.plans=state.plans.filter(p=>p.id!==id);save();renderPlans()};
+
+document.querySelectorAll("[data-trainer]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-trainer]").forEach(x=>x.classList.remove("active"));b.classList.add("active");trainerMode=b.dataset.trainer;trainerCorrect=0;startTrainer()});
+$("nextTrainer").onclick=startTrainer;
+window.answerTrainer=answerTrainer;
+
+$("assistantForm").onsubmit=e=>{e.preventDefault();const q=$("assistantInput").value.trim().toLowerCase();const matches=state.drugs.filter(d=>[d.generic,d.brand,d.drugClass].join(" ").toLowerCase().includes(q));$("assistantAnswer").innerHTML=matches.length?matches.map(d=>`<div class="drug-card mastery-${d.mastery}"><h3>${esc(d.generic)}</h3><p><strong>Class:</strong> ${esc(d.drugClass)}</p><p><strong>Use:</strong> ${esc(d.use||"—")}</p><p><strong>Side effects:</strong> ${esc(d.sideEffects||"—")}</p><p><strong>Mnemonic:</strong> ${esc(d.mnemonic||"—")}</p></div>`).join(""):'<p>لم أجد نتيجة في Drug Vault. أضيفي الدواء أولًا.</p>'};
+$("medicineImage").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$("imagePreview").innerHTML=`<img src="${r.result}" alt="Medicine preview">`};r.readAsDataURL(f)};
+
+$("profileForm").onsubmit=e=>{e.preventDefault();state.profile={name:$("profileName").value.trim(),major:$("profileMajor").value.trim(),university:$("profileUniversity").value.trim()};state.settings.dailyGoal=Math.max(10,Number($("dailyGoal").value)||120);save();render();toast("تم حفظ التغييرات")};
+
+document.querySelectorAll(".tab").forEach(tab=>tab.onclick=()=>{if(timerRunning)return;document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));tab.classList.add("active");timerMode=tab.dataset.mode;resetTimer()});
+$("startTimer").onclick=startTimer;$("pauseTimer").onclick=pauseTimer;$("finishTimer").onclick=finishTimer;$("resetTimer").onclick=resetTimer;$("clearSessions").onclick=()=>{if(confirm("مسح جميع الجلسات؟")){state.sessions=[];save();render()}};
+function modeSeconds(){return timerMode==="pomodoro"?1500:timerMode==="deep"?3000:0}
+function timerText(sec){return`${String(Math.floor(sec/60)).padStart(2,"0")}:${String(sec%60).padStart(2,"0")}`}
+function updateTimer(){$("timerDisplay").textContent=timerText(timerSeconds)}
+function startTimer(){if(timerRunning)return;timerRunning=true;$("timerStatus").textContent="جلسة جارية...";if(timerMode==="stopwatch"&&!stopwatchStartedAt)stopwatchStartedAt=Date.now();timerInterval=setInterval(()=>{if(timerMode==="stopwatch")timerSeconds=Math.floor((stopwatchBase+Date.now()-stopwatchStartedAt)/1000);else{timerSeconds--;if(timerSeconds<=0){saveSession(modeSeconds());toast("انتهت الجلسة ✅");resetTimer()}}updateTimer()},250)}
+function pauseTimer(){if(!timerRunning)return;clearInterval(timerInterval);timerRunning=false;if(timerMode==="stopwatch"){stopwatchBase+=Date.now()-stopwatchStartedAt;stopwatchStartedAt=null}$("timerStatus").textContent="متوقف مؤقتًا"}
+function finishTimer(){let sec=timerMode==="stopwatch"?timerSeconds:modeSeconds()-timerSeconds;if(sec<1){toast("لا يوجد وقت لحفظه");return}saveSession(sec);resetTimer();toast("تم حفظ الجلسة")}
+function resetTimer(){clearInterval(timerInterval);timerRunning=false;stopwatchBase=0;stopwatchStartedAt=null;timerSeconds=modeSeconds();$("timerStatus").textContent="جاهزة للتركيز";updateTimer()}
+function saveSession(sec){state.sessions.push({id:crypto.randomUUID(),subjectId:$("timerSubject").value,taskId:$("timerTask").value,durationSeconds:sec,mode:timerMode,endedAt:new Date().toISOString()});save();render()}
+
+render();updateTimer();startReview();startTrainer();
