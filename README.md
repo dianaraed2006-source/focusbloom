@@ -152,3 +152,7 @@
 - Semester accordions and + course buttons now use the requested layout.
 - Added cache-busted files `app-v33.js` and `styles-v33.css` so Safari/GitHub Pages loads the new version.
 - The page displays a visible `v3.3` marker for confirmation.
+
+# Version 3.4 Curriculum Rendering Fix
+تمت إعادة كتابة عرض السنوات والفصول بطريقة أبسط ومتوافقة مع Safari على iPad.
+يظهر الفصل الأول مفتوحًا تلقائيًا، ويمكن فتح الفصل الثاني والصيفي بالضغط.
