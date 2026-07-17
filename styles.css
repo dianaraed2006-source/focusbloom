@@ -94,3 +94,14 @@ body.dark .medical-disclaimer{background:#3b3019;color:#ffe7a3;border-color:#705
 .course-summary-result h1,.course-summary-result h2,.course-summary-result h3{color:var(--primary)}
 @media(max-width:1050px){.year-grid{grid-template-columns:1fr 1fr}.analyzer-layout{grid-template-columns:1fr}}
 @media(max-width:650px){.rx-product-grid,.year-grid{grid-template-columns:1fr}.drug-explorer-search{grid-template-columns:1fr}}
+
+.year-grid{grid-template-columns:1fr}
+.curriculum-year-card{padding:20px}
+.semester-block{margin-top:18px;border-top:1px solid var(--border);padding-top:16px}
+.curriculum-table-wrap{overflow-x:auto}
+.curriculum-table{width:100%;border-collapse:collapse;min-width:760px}
+.curriculum-table th,.curriculum-table td{padding:11px;border-bottom:1px solid var(--border);text-align:right;vertical-align:middle}
+.curriculum-table th{background:var(--surface2);color:var(--primary)}
+.course-actions{display:flex;gap:6px;flex-wrap:wrap}
+.year-focus{margin-top:18px;padding:14px;border-radius:14px;background:var(--surface2)}
+.year-focus ul{line-height:1.9;margin-bottom:0}

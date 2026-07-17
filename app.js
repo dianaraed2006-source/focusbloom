@@ -125,15 +125,83 @@ async function recognizeMedicine(){
 }
 
 
-const pharmacyYears=[
-  {year:"3",title:"السنة الثالثة — Foundations to Systems",courses:["Pharmacology","Medicinal Chemistry","Pharmaceutics","Instrumental Analysis","Pathophysiology"],skills:["Drug class patterns","Mechanisms of action","SAR basics","Dosage-form principles","Analytical calculations"],tools:["Class comparison tables","Mechanism maps","Drug → Class quizzes","Calculation practice"]},
-  {year:"4",title:"السنة الرابعة — Therapeutics & Integration",courses:["Clinical Pharmacy","Therapeutics","Pharmacokinetics","Toxicology","Biopharmaceutics"],skills:["Treatment algorithms","Dose adjustment concepts","Interactions","Monitoring parameters","Case interpretation"],tools:["Patient-case worksheets","Renal/hepatic flags","Guideline comparisons","Counselling checklists"]},
-  {year:"5",title:"السنة الخامسة — Practice & Clinical Reasoning",courses:["Advanced Therapeutics","Hospital/Community Training","Pharmacovigilance","Research","Graduation Project"],skills:["Clinical decision reasoning","Medication review","Evidence appraisal","Patient counselling","Safety reporting"],tools:["Case simulations","SOAP notes","Journal-club templates","Drug information responses"]}
-];
+const pharmacyYears=[{"year":"1","title":"السنة الأولى","semesters":[{"name":"الفصل الأول","credits":15,"courses":[{"code":"907110","name":"مقدمة في ممارسة الصيدلة","credits":1,"type":"نظري"},{"code":"1501132","name":"كيمياء عامة لطلبة الصيدلة","credits":3,"type":"نظري"},{"code":"1501135","name":"كيمياء عامة عملي لطلبة الصيدلة","credits":1,"type":"عملي"},{"code":"1501141","name":"علوم حياتية للصيدلة","credits":3,"type":"نظري"},{"code":"—","name":"متطلب جامعة","credits":3,"type":"نظري"},{"code":"—","name":"متطلب جامعة","credits":3,"type":"نظري"}]},{"name":"الفصل الثاني","credits":15,"courses":[{"code":"905120","name":"كيمياء عضوية صيدلانية 1","credits":3,"type":"نظري"},{"code":"906122","name":"علم التشريح ووظائف الأعضاء 1","credits":2,"type":"نظري"},{"code":"906123","name":"علم التشريح ووظائف الأعضاء عملي","credits":1,"type":"عملي"},{"code":"1501165","name":"مهارات الحاسوب","credits":3,"type":"نظري"},{"code":"—","name":"متطلب جامعة","credits":3,"type":"نظري"},{"code":"—","name":"متطلب جامعة","credits":3,"type":"نظري"}]}],"focus":["تأسيس قوي في الكيمياء والعلوم الحيوية.","إتقان المصطلحات الطبية والصيدلانية الأساسية.","بناء عادة دراسة منتظمة قبل مواد التخصص الثقيلة."]},{"year":"2","title":"السنة الثانية","semesters":[{"name":"الفصل الأول","credits":15,"courses":[{"code":"905210","name":"كيمياء عضوية صيدلانية 2","credits":3,"type":"نظري"},{"code":"906214","name":"علم التشريح ووظائف الأعضاء 2","credits":3,"type":"نظري"},{"code":"906216","name":"كيمياء حيوية","credits":3,"type":"نظري"},{"code":"906217","name":"كيمياء حيوية عملي","credits":1,"type":"عملي"},{"code":"907214","name":"علم الأحياء الدقيقة الصيدلانية والمناعة 1","credits":3,"type":"نظري"},{"code":"907215","name":"علم الأحياء الدقيقة الصيدلانية عملي","credits":1,"type":"عملي"},{"code":"907216","name":"إحصاء حيوي تطبيقي","credits":1,"type":"نظري"}]},{"name":"الفصل الثاني","credits":15,"courses":[{"code":"905222","name":"كيمياء تحليلية","credits":2,"type":"نظري"},{"code":"906224","name":"علم وظائف الأعضاء المرضي","credits":3,"type":"نظري"},{"code":"907224","name":"علم الأحياء الدقيقة الصيدلانية 2","credits":3,"type":"نظري"},{"code":"907226","name":"صيدلانيات 1","credits":3,"type":"نظري"},{"code":"907227","name":"صيدلانيات 1 عملي","credits":1,"type":"عملي"},{"code":"—","name":"متطلب جامعة","credits":3,"type":"نظري"}]}],"focus":["ربط الكيمياء العضوية بالكيمياء الدوائية لاحقًا.","فهم الفسيولوجيا المرضية والميكروبيولوجي كأساس للفارماكولوجي.","إتقان الحسابات والمفاهيم الصيدلانية الأساسية."]},{"year":"3","title":"السنة الثالثة","semesters":[{"name":"الفصل الأول","credits":17,"courses":[{"code":"905314","name":"تحليل آلي","credits":2,"type":"نظري"},{"code":"905315","name":"كيمياء تحليلية وتحليل آلي عملي","credits":1,"type":"عملي"},{"code":"905316","name":"كيمياء دوائية 1","credits":3,"type":"نظري"},{"code":"906314","name":"علم الأدوية 1","credits":3,"type":"نظري"},{"code":"906316","name":"ممارسة الصيدلة عملي","credits":1,"type":"عملي"},{"code":"907314","name":"صيدلانيات 2","credits":3,"type":"نظري"},{"code":"907315","name":"صيدلانيات 2 عملي","credits":1,"type":"عملي"},{"code":"—","name":"متطلب جامعة","credits":3,"type":"نظري"}]},{"name":"الفصل الثاني","credits":15,"courses":[{"code":"905324","name":"كيمياء دوائية 2","credits":3,"type":"نظري"},{"code":"905325","name":"كيمياء دوائية عملي","credits":1,"type":"عملي"},{"code":"906324","name":"علم الأدوية 2","credits":3,"type":"نظري"},{"code":"906325","name":"علم الأدوية عملي","credits":1,"type":"عملي"},{"code":"907326","name":"تكنولوجيا صيدلانية 1","credits":3,"type":"نظري"},{"code":"907327","name":"تكنولوجيا صيدلانية عملي","credits":1,"type":"عملي"},{"code":"907328","name":"صيدلة حيوية","credits":2,"type":"نظري"},{"code":"907329","name":"تشريعات وأخلاقيات مهنة الصيدلة","credits":1,"type":"نظري"}]},{"name":"الفصل الصيفي","credits":2,"courses":[{"code":"906330","name":"تدريب ميداني 1","credits":2,"type":"عملي"}]}],"focus":["حفظ Drug classes وMechanisms of action بطريقة منظمة.","ربط الكيمياء الدوائية بالـ SAR والفارماكولوجي.","فهم الجرعات والأشكال الصيدلانية والتوافر الحيوي.","بناء Drug Vault وFlashcards لكل مادة."]},{"year":"4","title":"السنة الرابعة","semesters":[{"name":"الفصل الأول","credits":16,"courses":[{"code":"905414","name":"كيمياء النواتج الطبيعية","credits":3,"type":"نظري"},{"code":"905415","name":"كيمياء النواتج الطبيعية عملي","credits":1,"type":"عملي"},{"code":"906415","name":"صيدلة سريرية ومداواة 1","credits":3,"type":"نظري"},{"code":"906417","name":"أدوية بدون وصفة","credits":2,"type":"نظري"},{"code":"906418","name":"حركية الدواء","credits":2,"type":"نظري"},{"code":"906419","name":"حركية الدواء عملي","credits":1,"type":"عملي"},{"code":"906421","name":"علم السموم","credits":2,"type":"نظري"},{"code":"907412","name":"تكنولوجيا صيدلانية 2","credits":2,"type":"نظري"}]},{"name":"الفصل الثاني","credits":16,"courses":[{"code":"905422","name":"التداوي بالأعشاب","credits":3,"type":"نظري"},{"code":"906432","name":"صيدلة سريرية ومداواة 2","credits":3,"type":"نظري"},{"code":"906433","name":"صيدلة سريرية ومداواة عملي","credits":1,"type":"عملي"},{"code":"906434","name":"معلومات دوائية وممارسة مهنية","credits":2,"type":"نظري"},{"code":"906436","name":"كيمياء حيوية وتقنية سريرية","credits":3,"type":"نظري"},{"code":"906437","name":"كيمياء حيوية وتقنية سريرية عملي","credits":1,"type":"عملي"},{"code":"—","name":"متطلب تخصص اختياري","credits":3,"type":"نظري"}]},{"name":"الفصل الصيفي","credits":4,"courses":[{"code":"906440","name":"تدريب ميداني 2","credits":4,"type":"عملي"}]}],"focus":["تطبيق المعلومات على حالات مرضية ومقارنة الخيارات العلاجية.","إتقان Monitoring parameters والتداخلات والتحذيرات.","فهم Pharmacokinetics والسموم ومعلومات الأدوية.","التدرب على كتابة إجابة Drug Information احترافية."]},{"year":"5","title":"السنة الخامسة","semesters":[{"name":"الفصل الأول","credits":15,"courses":[{"code":"906511","name":"صيدلة سريرية ومداواة 3","credits":3,"type":"نظري"},{"code":"906515","name":"اقتصاديات صيدلانية","credits":2,"type":"نظري"},{"code":"906518","name":"صحة عامة","credits":2,"type":"نظري"},{"code":"907512","name":"مستحضرات التجميل","credits":2,"type":"نظري"},{"code":"—","name":"متطلب تخصص اختياري","credits":3,"type":"نظري"},{"code":"—","name":"متطلب جامعة","credits":3,"type":"نظري"}]},{"name":"الفصل الثاني","credits":16,"courses":[{"code":"907525","name":"تسويق صيدلاني","credits":2,"type":"نظري"},{"code":"907527","name":"تقنية حيوية صيدلانية","credits":3,"type":"نظري"},{"code":"907528","name":"جودة الدواء وتطويره","credits":2,"type":"نظري"},{"code":"—","name":"متطلب تخصص اختياري","credits":3,"type":"نظري"},{"code":"—","name":"متطلب جامعة","credits":3,"type":"نظري"},{"code":"—","name":"مادة حرة","credits":3,"type":"نظري"}]}],"focus":["الاستعداد للممارسة المهنية وسوق العمل.","التفكير السريري المتقدم وتقييم الدليل العلمي.","فهم اقتصاديات الدواء والجودة والتقنية الحيوية.","إعداد ملفات المراجعة النهائية والتدريب على الحالات."]}];
 function renderYearModules(){
   const filter=$("yearFilter").value;
   const arr=pharmacyYears.filter(y=>filter==="all"||y.year===filter);
-  $("yearModules").innerHTML=arr.map(y=>`<div class="year-card"><span class="year-badge">Year ${y.year}</span><h3>${esc(y.title)}</h3><strong>مواد شائعة</strong><ul>${y.courses.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><strong>ما يجب إتقانه</strong><ul>${y.skills.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><strong>أدوات داخل الموقع</strong><ul>${y.tools.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")
+  $("yearModules").innerHTML=arr.map(y=>`
+    <div class="year-card curriculum-year-card">
+      <div class="card-head">
+        <span class="year-badge">Year ${y.year}</span>
+        <strong>${esc(y.title)}</strong>
+      </div>
+
+      ${y.semesters.map(sem=>`
+        <section class="semester-block">
+          <div class="card-head">
+            <h3>${esc(sem.name)}</h3>
+            <span class="pill">${sem.credits} ساعة</span>
+          </div>
+
+          <div class="curriculum-table-wrap">
+            <table class="curriculum-table">
+              <thead>
+                <tr>
+                  <th>رمز المادة</th>
+                  <th>اسم المادة</th>
+                  <th>الساعات</th>
+                  <th>النوع</th>
+                  <th>أدوات المادة</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sem.courses.map(c=>`
+                  <tr>
+                    <td>${esc(c.code)}</td>
+                    <td><strong>${esc(c.name)}</strong></td>
+                    <td>${c.credits}</td>
+                    <td>${esc(c.type)}</td>
+                    <td>
+                      <div class="course-actions">
+                        <button class="text-btn" onclick="openCourseAnalyzer('${esc(c.name).replace(/'/g,"&#39;")}','${y.year}')">رفع وتلخيص</button>
+                        <button class="text-btn" onclick="addCurriculumSubject('${esc(c.name).replace(/'/g,"&#39;")}')">إضافة لموادي</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      `).join("")}
+
+      <div class="year-focus">
+        <h3>ما يجب التركيز عليه</h3>
+        <ul>${y.focus.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+      </div>
+    </div>
+  `).join("")
+}
+
+window.openCourseAnalyzer=(course,year)=>{
+  nav("course-analyzer");
+  $("courseName").value=course;
+  const map={"3":"Third year","4":"Fourth year","5":"Fifth year"};
+  if(map[year]) $("courseYear").value=map[year];
+  toast(`تم اختيار مادة ${course}`);
+};
+
+window.addCurriculumSubject=(course)=>{
+  if(state.subjects.some(s=>s.name===course)){toast("المادة موجودة بالفعل");return}
+  const colors=["#7c5ce7","#4d9bd8","#3aa57a","#df7c5c","#d18b36","#b65ca8"];
+  state.subjects.push({
+    id:crypto.randomUUID(),
+    name:course,
+    color:colors[state.subjects.length%colors.length],
+    slides:0,
+    targetHours:0
+  });
+  save();render();toast("تمت إضافة المادة إلى موادك");
 }
 
 async function rxNormSearch(){
