@@ -165,3 +165,8 @@ This release adds:
 - Local and cloud subject-file workflows.
 - A deployment checklist in Arabic.
 - Cache-busted v4.0 assets.
+
+# FocusBloom 4.1 — iPad SQL Copy Fix
+- Added `FULL_SETUP_COPY_PASTE.txt` at the root for easy viewing/copying on iPad.
+- Added `FULL_SETUP_COPY_PASTE.sql` at the root.
+- The original SQL remains in `supabase/FULL_SETUP.sql`.
