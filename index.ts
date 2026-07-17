@@ -12,8 +12,21 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) throw new Error("OPENAI_API_KEY is missing");
 
-    const { imageDataUrl } = await req.json();
-    if (!imageDataUrl) throw new Error("No image provided");
+    const { question, drugContext = [] } = await req.json();
+
+    const prompt = `
+You are a cautious pharmacy study assistant for university students.
+Use the provided drug context first. Explain in Arabic with English drug terminology.
+Never diagnose, prescribe, or claim that a medicine is absolutely safe.
+Always mention that pregnancy, children, older adults, kidney/liver disease and interactions
+require checking the current official label and a clinician/pharmacist.
+
+Drug context:
+${JSON.stringify(drugContext).slice(0, 20000)}
+
+Student question:
+${question}
+`;
 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -23,23 +36,14 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-5-mini",
-        input: [{
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: "Read the medicine package image. Return JSON only with likely brand_name, generic_name, strength, dosage_form, manufacturer, visible_warnings, confidence, and a clear warning that image recognition can be wrong and the user must verify the package and official label. Do not provide dosing advice."
-            },
-            { type: "input_image", image_url: imageDataUrl }
-          ]
-        }]
+        input: prompt
       }),
     });
 
     const data = await response.json();
     if (!response.ok) throw new Error(data?.error?.message || "OpenAI request failed");
 
-    return new Response(JSON.stringify({ result: data.output_text || "" }), {
+    return new Response(JSON.stringify({ answer: data.output_text || "No answer returned." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
