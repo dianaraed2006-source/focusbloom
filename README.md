@@ -156,3 +156,12 @@
 # Version 3.4 Curriculum Rendering Fix
 تمت إعادة كتابة عرض السنوات والفصول بطريقة أبسط ومتوافقة مع Safari على iPad.
 يظهر الفصل الأول مفتوحًا تلقائيًا، ويمكن فتح الفصل الثاني والصيفي بالضغط.
+
+
+# FocusBloom 4.0 Complete
+This release adds:
+- In-app safe setup of the public Supabase URL and publishable key.
+- Full SQL setup for database tables, RLS, and private Storage.
+- Local and cloud subject-file workflows.
+- A deployment checklist in Arabic.
+- Cache-busted v4.0 assets.

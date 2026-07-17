@@ -1,7 +1,11 @@
 /*
-  انسخي هذا الملف كما هو إلى GitHub.
-  لتفعيل المزامنة والذكاء الاصطناعي لاحقًا، ضعي قيم مشروع Supabase هنا.
-  الـ publishable/anon key مسموح في المتصفح فقط مع تفعيل RLS.
+  FocusBloom 4.0 configuration
+
+  You may either:
+  1) paste the public Supabase values here, OR
+  2) enter them from داخل الموقع > الإعداد والتفعيل.
+
+  Never put OPENAI_API_KEY or a Supabase secret/service-role key here.
 */
 window.FOCUS_BLOOM_CONFIG = {
   SUPABASE_URL: "",

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#7c5ce7">
   <meta name="description" content="FocusBloom Pharmacy - منصة دراسة ذكية لطلاب الصيدلة">
   <title>FocusBloom Pharmacy</title>
-  <link rel="stylesheet" href="styles-v33.css">
+  <link rel="stylesheet" href="styles-v40.css">
 </head>
 <body>
 <div id="toast" class="toast"></div>
@@ -36,6 +36,7 @@
       <button class="nav-link" data-page="stats">📊 <span>الإحصائيات</span></button>
       <button class="nav-link" data-page="achievements">🏆 <span>الإنجازات</span></button>
       <button class="nav-link" data-page="assistant">🤖 <span>مساعد الصيدلة</span></button>
+      <button class="nav-link" data-page="setup">⚙️ <span>الإعداد والتفعيل</span></button>
       <button class="nav-link" data-page="cloud">☁️ <span>الحساب والمزامنة</span></button>
       <button class="nav-link" data-page="profile">👤 <span>الملف الشخصي</span></button>
     </nav>
@@ -435,7 +436,7 @@
     <section id="curriculum" class="page">
       <article class="card">
         <div class="card-head">
-          <div><h2>الخطة الدراسية للصيدلة <small class="version-chip">v3.4</small></h2><p class="muted">اختاري السنة، ثم افتحي الفصل واضغطي + لإضافة المادة إلى موادك.</p></div>
+          <div><h2>الخطة الدراسية للصيدلة <small class="version-chip">v4.0</small></h2><p class="muted">اختاري السنة، ثم افتحي الفصل واضغطي + لإضافة المادة إلى موادك.</p></div>
           <select id="yearFilter" class="small-select">
             <option value="all">كل السنوات</option>
             <option value="1">السنة الأولى</option>
@@ -568,6 +569,58 @@
     </section>
 
 
+
+    <section id="setup" class="page">
+      <div class="two-col">
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <h2>الإعداد والتفعيل</h2>
+              <p class="muted">أدخلي القيم العامة فقط. مفتاح OpenAI يبقى داخل Supabase Secrets ولا يوضع هنا.</p>
+            </div>
+            <span id="setupConnectionBadge" class="pill">غير متصل</span>
+          </div>
+
+          <form id="runtimeConfigForm" class="stack-form">
+            <label>Supabase Project URL
+              <input id="runtimeSupabaseUrl" type="url" placeholder="https://xxxxxxxx.supabase.co" required>
+            </label>
+            <label>Supabase Publishable Key
+              <textarea id="runtimeSupabaseKey" dir="ltr" placeholder="sb_publishable_..." required></textarea>
+            </label>
+            <div class="hero-actions">
+              <button class="primary-btn" type="submit">حفظ واختبار الاتصال</button>
+              <button id="clearRuntimeConfig" class="danger-btn" type="button">مسح الإعداد</button>
+            </div>
+          </form>
+
+          <div id="setupTestResult" class="assistant-answer">
+            <p class="muted">هذه القيم عامة ومصممة للاستخدام في المتصفح مع RLS. لا تضعي Secret key هنا.</p>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>حالة المزايا</h2>
+          <div id="featureChecklist" class="setup-checklist"></div>
+          <div class="medical-disclaimer">
+            الذكاء الاصطناعي لن يعمل بمجرد إضافة OPENAI_API_KEY وحده؛ يجب أيضًا إنشاء Edge Functions وتشغيل ملف SQL الموجود داخل ZIP.
+          </div>
+        </article>
+      </div>
+
+      <article class="card" style="margin-top:16px">
+        <h2>ترتيب التفعيل</h2>
+        <ol class="setup-steps">
+          <li>شغّلي <code>supabase/FULL_SETUP.sql</code> في SQL Editor.</li>
+          <li>أنشئي Edge Functions الأربع من الملفات الموجودة داخل <code>supabase/functions</code>.</li>
+          <li>تأكدي أن Secret باسم <code>OPENAI_API_KEY</code> موجود.</li>
+          <li>أدخلي Project URL وPublishable key في هذه الصفحة.</li>
+          <li>أنشئي حسابًا من صفحة الحساب والمزامنة وسجلي الدخول.</li>
+          <li>اختبري التلخيص من محلل المواد.</li>
+        </ol>
+      </article>
+    </section>
+
     <section id="cloud" class="page">
       <div class="two-col">
         <article class="card">
@@ -624,6 +677,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="cloud.js"></script>
-<script src="app-v34.js"></script>
+<script src="app-v40.js"></script>
 </body>
 </html>
