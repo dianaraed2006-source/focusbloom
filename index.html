@@ -159,16 +159,89 @@
     </section>
 
     <section id="subjects" class="page">
+      <div class="two-col subjects-layout">
+        <article class="card">
+          <div class="card-head">
+            <div><h2>المواد التي أدرسها</h2><p class="muted">اضغطي على أي مادة لفتح ملفاتها وأدواتها.</p></div>
+            <span class="pill" id="subjectsCount">0 مواد</span>
+          </div>
+          <form id="subjectForm" class="form-grid subject-form">
+            <input id="subjectName" placeholder="اسم المادة" required>
+            <input id="subjectColor" type="color" value="#7c5ce7">
+            <input id="subjectSlides" type="number" min="0" placeholder="عدد السلايدات">
+            <input id="subjectTarget" type="number" min="0" placeholder="الهدف بالساعات">
+            <button class="primary-btn" type="submit">إضافة مادة</button>
+          </form>
+          <div id="subjectsList" class="cards-list"></div>
+        </article>
+
+        <article class="card weekly-planner-card">
+          <div class="card-head"><h2>منظّم الأسبوع الذكي</h2><span class="pill">Anti-backlog</span></div>
+          <p class="muted">حددي الأيام والساعات، وسيقسم الموقع المواد بشكل متوازن حتى لا تتراكم.</p>
+
+          <label>أيام الدراسة</label>
+          <div id="studyDaysPicker" class="day-picker">
+            <label><input type="checkbox" value="الأحد">الأحد</label>
+            <label><input type="checkbox" value="الاثنين">الاثنين</label>
+            <label><input type="checkbox" value="الثلاثاء">الثلاثاء</label>
+            <label><input type="checkbox" value="الأربعاء">الأربعاء</label>
+            <label><input type="checkbox" value="الخميس">الخميس</label>
+            <label><input type="checkbox" value="الجمعة">الجمعة</label>
+            <label><input type="checkbox" value="السبت">السبت</label>
+          </div>
+
+          <div class="select-row">
+            <label>عدد الأيام المطلوب
+              <input id="studyDaysCount" type="number" min="1" max="7" value="5">
+            </label>
+            <label>الساعات في كل يوم
+              <input id="studyHoursPerDay" type="number" min="0.5" max="12" step="0.5" value="3">
+            </label>
+          </div>
+
+          <label>تفضيلاتك
+            <textarea id="studyPlanPreferences" placeholder="مثال: لا أريد الدراسة الجمعة، الفارما أصعب مادة، أريد مراجعة أسبوعية السبت..."></textarea>
+          </label>
+
+          <div class="hero-actions">
+            <button id="generateLocalStudyPlan" class="primary-btn" type="button">إنشاء خطة الآن</button>
+            <button id="generateAIStudyPlan" class="secondary-btn" type="button">تحسينها بالذكاء الاصطناعي</button>
+          </div>
+          <div id="weeklyStudyPlanResult" class="weekly-plan-result"><p class="muted">ستظهر خطتك هنا.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="subject-workspace" class="page">
       <article class="card">
-        <div class="card-head"><h2>مواد الصيدلة</h2><span class="pill" id="subjectsCount">0 مواد</span></div>
-        <form id="subjectForm" class="form-grid subject-form">
-          <input id="subjectName" placeholder="اسم المادة" required>
-          <input id="subjectColor" type="color" value="#7c5ce7">
-          <input id="subjectSlides" type="number" min="0" placeholder="عدد السلايدات">
-          <input id="subjectTarget" type="number" min="0" placeholder="الهدف بالساعات">
-          <button class="primary-btn" type="submit">إضافة مادة</button>
-        </form>
-        <div id="subjectsList" class="cards-list"></div>
+        <div class="card-head">
+          <div>
+            <button id="backToSubjects" class="text-btn" type="button">← العودة إلى المواد</button>
+            <h2 id="workspaceSubjectTitle">المادة</h2>
+            <p class="muted">أضيفي ملفات المادة ثم افتحيها في محلل الذكاء الاصطناعي للتلخيص والشرح والاختبارات.</p>
+          </div>
+          <span id="workspaceSubjectHours" class="pill">0د</span>
+        </div>
+
+        <div class="workspace-grid">
+          <section class="workspace-panel">
+            <h3>ملفات المادة</h3>
+            <input id="subjectFileUpload" type="file" multiple accept=".pdf,.pptx,.docx,.txt,.md,.html,.png,.jpg,.jpeg">
+            <p class="muted small-note">يتم حفظ الملفات داخل متصفح هذا الجهاز باستخدام IndexedDB. الملفات لا تنتقل إلى جهاز آخر إلا عند إضافة تخزين سحابي للملفات.</p>
+            <div id="subjectFilesList" class="list"></div>
+          </section>
+
+          <section class="workspace-panel">
+            <h3>أدوات المادة</h3>
+            <div class="workspace-actions">
+              <button id="workspaceAnalyzeButton" class="primary-btn" type="button">رفع ملف إلى محلل المادة</button>
+              <button id="workspaceTimerButton" class="secondary-btn" type="button">بدء مؤقت لهذه المادة</button>
+              <button id="workspaceFlashcardButton" class="secondary-btn" type="button">إضافة Flashcard</button>
+              <button id="workspacePlanButton" class="secondary-btn" type="button">عمل خطة أسبوعية</button>
+            </div>
+            <div id="workspaceSubjectStats" class="workspace-stats"></div>
+          </section>
+        </div>
       </article>
     </section>
 
@@ -362,7 +435,7 @@
     <section id="curriculum" class="page">
       <article class="card">
         <div class="card-head">
-          <div><h2>الخطة الدراسية للصيدلة — ASU</h2><p class="muted">الخطة مرتبة من السنة الأولى حتى الخامسة مع ربط كل مادة بالتلخيص والاختبارات والـ Flashcards.</p></div>
+          <div><h2>الخطة الدراسية للصيدلة</h2><p class="muted">اختاري السنة، ثم افتحي الفصل واضغطي + لإضافة المادة إلى موادك.</p></div>
           <select id="yearFilter" class="small-select">
             <option value="all">كل السنوات</option>
             <option value="1">السنة الأولى</option>
@@ -394,6 +467,8 @@
               <label>اسم المادة<input id="courseName" placeholder="مثال: Pharmacology I"></label>
               <label>السنة
                 <select id="courseYear">
+                  <option value="First year">السنة الأولى</option>
+                  <option value="Second year">السنة الثانية</option>
                   <option value="Third year">السنة الثالثة</option>
                   <option value="Fourth year">السنة الرابعة</option>
                   <option value="Fifth year">السنة الخامسة</option>

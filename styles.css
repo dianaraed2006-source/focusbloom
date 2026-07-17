@@ -105,3 +105,51 @@ body.dark .medical-disclaimer{background:#3b3019;color:#ffe7a3;border-color:#705
 .course-actions{display:flex;gap:6px;flex-wrap:wrap}
 .year-focus{margin-top:18px;padding:14px;border-radius:14px;background:var(--surface2)}
 .year-focus ul{line-height:1.9;margin-bottom:0}
+
+/* Interactive curriculum */
+.year-grid{display:grid;grid-template-columns:1fr;gap:18px}
+.curriculum-year-card{padding:0;overflow:hidden;border:1px solid #c8d7f1;background:#aec8ee}
+.curriculum-year-header{padding:18px 20px;background:white;display:flex;justify-content:space-between;align-items:center}
+.curriculum-year-header h2{margin:0;font-size:24px}
+.semester-accordion{margin:16px;border-radius:15px;overflow:hidden}
+.semester-toggle{width:100%;border:0;background:white;color:var(--text);padding:17px 20px;display:flex;justify-content:space-between;align-items:center;font-size:20px;font-weight:800}
+.semester-toggle:hover{background:#fafaff}
+.semester-toggle .semester-arrow{transition:.2s}
+.semester-toggle.open .semester-arrow{transform:rotate(180deg)}
+.semester-courses{display:none;padding:0 8px 12px;background:#aec8ee}
+.semester-courses.open{display:grid;gap:12px}
+.curriculum-course-row{display:grid;grid-template-columns:66px 1fr 85px;align-items:center;gap:12px;background:white;border-radius:12px;padding:13px 16px;box-shadow:0 5px 12px rgba(40,60,100,.18)}
+.course-add-btn{width:42px;height:42px;border-radius:12px;border:0;background:var(--primary);color:white;font-size:25px;display:grid;place-items:center}
+.course-add-btn.added{background:var(--success)}
+.course-name-button{border:0;background:transparent;color:var(--text);font-weight:700;text-align:right;font-size:16px}
+.course-name-button:hover{color:var(--primary)}
+.course-credit{text-align:left;font-weight:800}
+.course-credit small{display:block;color:var(--muted);font-weight:400}
+.curriculum-note{padding:0 18px 18px;color:#314666}
+
+/* Subjects and workspace */
+.subjects-layout{grid-template-columns:1.1fr .9fr}
+.subject-card{cursor:pointer;transition:.2s}
+.subject-card:hover{transform:translateY(-2px);border-color:var(--primary)}
+.subject-open-hint{font-size:12px;color:var(--primary)}
+.day-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 16px}
+.day-picker label{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1px solid var(--border);border-radius:11px;color:var(--text)}
+.day-picker input{width:auto}
+.weekly-plan-result{margin-top:16px;border:1px solid var(--border);border-radius:15px;padding:15px;min-height:180px;white-space:pre-wrap;line-height:1.8;background:var(--surface)}
+.plan-day{border-bottom:1px solid var(--border);padding:12px 0}
+.plan-day:last-child{border-bottom:0}
+.plan-block{display:grid;grid-template-columns:90px 1fr;gap:10px;padding:7px 0}
+.plan-time{color:var(--primary);font-weight:700}
+.workspace-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.workspace-panel{border:1px solid var(--border);border-radius:16px;padding:17px;background:var(--surface)}
+.workspace-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.workspace-stats{margin-top:16px;display:grid;gap:10px}
+.file-row{border:1px solid var(--border);border-radius:12px;padding:12px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.file-meta{color:var(--muted);font-size:12px}
+.small-note{font-size:12px}
+@media(max-width:950px){.subjects-layout,.workspace-grid{grid-template-columns:1fr}}
+@media(max-width:650px){
+  .day-picker{grid-template-columns:1fr 1fr}
+  .curriculum-course-row{grid-template-columns:50px 1fr 60px;padding:11px}
+  .workspace-actions{grid-template-columns:1fr}
+}

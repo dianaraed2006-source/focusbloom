@@ -18,7 +18,8 @@ const defaultState={
   mistakes:[],
   completedChallenges:[],
   challengeDate:"",
-  challengeIndex:0
+  challengeIndex:0,
+  weeklyPlanSettings:{days:[],daysCount:5,hoursPerDay:3,preferences:""}
 };
 let state=load();
 let timerMode="pomodoro",timerRunning=false,timerInterval=null,timerSeconds=1500,stopwatchBase=0,stopwatchStartedAt=null;
@@ -130,78 +131,72 @@ function renderYearModules(){
   const filter=$("yearFilter").value;
   const arr=pharmacyYears.filter(y=>filter==="all"||y.year===filter);
   $("yearModules").innerHTML=arr.map(y=>`
-    <div class="year-card curriculum-year-card">
-      <div class="card-head">
+    <article class="curriculum-year-card">
+      <div class="curriculum-year-header">
+        <h2>${esc(y.title)}</h2>
         <span class="year-badge">Year ${y.year}</span>
-        <strong>${esc(y.title)}</strong>
       </div>
 
-      ${y.semesters.map(sem=>`
-        <section class="semester-block">
-          <div class="card-head">
-            <h3>${esc(sem.name)}</h3>
-            <span class="pill">${sem.credits} ساعة</span>
-          </div>
+      ${y.semesters.map((sem,index)=>`
+        <section class="semester-accordion">
+          <button class="semester-toggle ${index===0?"open":""}" type="button"
+            onclick="toggleSemester(this)">
+            <span>${esc(sem.name)}</span>
+            <span><small>${sem.credits} ساعة</small> <b class="semester-arrow">⌄</b></span>
+          </button>
 
-          <div class="curriculum-table-wrap">
-            <table class="curriculum-table">
-              <thead>
-                <tr>
-                  <th>رمز المادة</th>
-                  <th>اسم المادة</th>
-                  <th>الساعات</th>
-                  <th>النوع</th>
-                  <th>أدوات المادة</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${sem.courses.map(c=>`
-                  <tr>
-                    <td>${esc(c.code)}</td>
-                    <td><strong>${esc(c.name)}</strong></td>
-                    <td>${c.credits}</td>
-                    <td>${esc(c.type)}</td>
-                    <td>
-                      <div class="course-actions">
-                        <button class="text-btn" onclick="openCourseAnalyzer('${esc(c.name).replace(/'/g,"&#39;")}','${y.year}')">رفع وتلخيص</button>
-                        <button class="text-btn" onclick="addCurriculumSubject('${esc(c.name).replace(/'/g,"&#39;")}')">إضافة لموادي</button>
-                      </div>
-                    </td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
+          <div class="semester-courses ${index===0?"open":""}">
+            ${sem.courses.map(c=>{
+              const added=state.subjects.some(s=>s.name===c.name);
+              return`<div class="curriculum-course-row">
+                <button class="course-add-btn ${added?"added":""}" type="button"
+                  onclick="addCurriculumSubject('${esc(c.name).replace(/'/g,"&#39;")}','${esc(c.code)}',${c.credits})"
+                  title="إضافة المادة">${added?"✓":"+"}</button>
+                <button class="course-name-button" type="button"
+                  onclick="previewCurriculumCourse('${esc(c.name).replace(/'/g,"&#39;")}','${y.year}')">${esc(c.name)}</button>
+                <div class="course-credit">${c.credits}<small>ساعة</small></div>
+              </div>`
+            }).join("")}
           </div>
         </section>
       `).join("")}
 
-      <div class="year-focus">
-        <h3>ما يجب التركيز عليه</h3>
-        <ul>${y.focus.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
-      </div>
-    </div>
+      <div class="curriculum-note">${y.focus.map(x=>`• ${esc(x)}`).join("<br>")}</div>
+    </article>
   `).join("")
 }
+window.toggleSemester=button=>{
+  button.classList.toggle("open");
+  button.nextElementSibling.classList.toggle("open");
+};
+window.previewCurriculumCourse=(course,year)=>{
+  const existing=state.subjects.find(s=>s.name===course);
+  if(existing){openSubjectWorkspace(existing.id);return}
+  toast("اضغطي + أولًا لإضافة المادة إلى موادك");
+};
 
 window.openCourseAnalyzer=(course,year)=>{
   nav("course-analyzer");
   $("courseName").value=course;
-  const map={"3":"Third year","4":"Fourth year","5":"Fifth year"};
+  const map={"1":"First year","2":"Second year","3":"Third year","4":"Fourth year","5":"Fifth year"};
   if(map[year]) $("courseYear").value=map[year];
   toast(`تم اختيار مادة ${course}`);
 };
 
-window.addCurriculumSubject=(course)=>{
-  if(state.subjects.some(s=>s.name===course)){toast("المادة موجودة بالفعل");return}
+window.addCurriculumSubject=(course,code="",credits=0)=>{
+  const existing=state.subjects.find(s=>s.name===course);
+  if(existing){toast("المادة موجودة بالفعل");renderYearModules();return}
   const colors=["#7c5ce7","#4d9bd8","#3aa57a","#df7c5c","#d18b36","#b65ca8"];
   state.subjects.push({
     id:crypto.randomUUID(),
     name:course,
+    code,
+    credits,
     color:colors[state.subjects.length%colors.length],
     slides:0,
-    targetHours:0
+    targetHours:Math.max(credits*2,0)
   });
-  save();render();toast("تمت إضافة المادة إلى موادك");
+  save();render();renderYearModules();toast(`تمت إضافة ${course}`);
 }
 
 async function rxNormSearch(){
@@ -326,7 +321,148 @@ function summaryToFlashcards(){
   save();render();toast(added?`تمت إضافة ${added} بطاقة`:"لم أتعرف تلقائيًا على أسئلة وأجوبة واضحة");
 }
 
-document.querySelectorAll(".nav-link").forEach(n=>n.classList.toggle("active",n.dataset.page===page));const titles={dashboard:"مرحبًا بكِ في FocusBloom Pharmacy 👋",timer:"جلسة تركيز",subjects:"مواد الصيدلة","drug-vault":"Drug Vault",flashcards:"Flashcards",quiz:"Quiz Generator",planner:"Study Planner",trainer:"Pharmacy Trainer",stats:"الإحصائيات",achievements:"الإنجازات",assistant:"مساعد الصيدلة","drug-explorer":"Drug Explorer",curriculum:"Pharmacy Years Hub","course-analyzer":"محلل ملفات المواد",cloud:"الحساب والمزامنة",profile:"الملف الشخصي"};$("pageTitle").textContent=titles[page]||"FocusBloom";window.scrollTo({top:0,behavior:"smooth"});if(page==="flashcards")startReview();if(page==="trainer")startTrainer()}
+
+/* ---------- Subject file workspace (IndexedDB) ---------- */
+let activeSubjectId=null;
+const SUBJECT_DB_NAME="FocusBloomSubjectFiles";
+const SUBJECT_DB_VERSION=1;
+function openSubjectDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(SUBJECT_DB_NAME,SUBJECT_DB_VERSION);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("files")){const store=db.createObjectStore("files",{keyPath:"id"});store.createIndex("subjectId","subjectId")}};
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+  });
+}
+async function saveSubjectFile(subjectId,file){
+  const db=await openSubjectDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction("files","readwrite");
+    tx.objectStore("files").put({id:crypto.randomUUID(),subjectId,name:file.name,type:file.type,size:file.size,addedAt:new Date().toISOString(),blob:file});
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+}
+async function getSubjectFiles(subjectId){
+  const db=await openSubjectDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction("files","readonly"),idx=tx.objectStore("files").index("subjectId"),req=idx.getAll(subjectId);
+    req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);
+  });
+}
+async function deleteSubjectFile(id){
+  const db=await openSubjectDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction("files","readwrite");tx.objectStore("files").delete(id);
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+}
+async function renderSubjectFiles(){
+  if(!activeSubjectId)return;
+  const files=await getSubjectFiles(activeSubjectId);
+  $("subjectFilesList").innerHTML=files.length?files.map(f=>`<div class="file-row">
+    <div><strong>${esc(f.name)}</strong><div class="file-meta">${Math.ceil(f.size/1024)} KB · ${new Date(f.addedAt).toLocaleDateString("ar-JO")}</div></div>
+    <div class="hero-actions">
+      <button class="text-btn" onclick="sendStoredFileToAnalyzer('${f.id}')">تحليل</button>
+      <button class="danger-btn" onclick="removeStoredFile('${f.id}')">حذف</button>
+    </div>
+  </div>`).join(""):'<div class="muted">لم تتم إضافة ملفات لهذه المادة بعد.</div>'
+}
+window.openSubjectWorkspace=async id=>{
+  const s=state.subjects.find(x=>x.id===id);if(!s)return;
+  activeSubjectId=id;nav("subject-workspace");
+  $("workspaceSubjectTitle").textContent=s.name;
+  $("workspaceSubjectHours").textContent=fmt(subjectMinutes(id));
+  $("workspaceSubjectStats").innerHTML=`
+    <div class="item"><span>وقت الدراسة المسجل</span><strong>${fmt(subjectMinutes(id))}</strong></div>
+    <div class="item"><span>عدد السلايدات</span><strong>${s.slides||0}</strong></div>
+    <div class="item"><span>الهدف الأسبوعي المقترح</span><strong>${s.credits?`${Math.max(2,s.credits)} ساعات`:"حدديه من الخطة"}</strong></div>`;
+  await renderSubjectFiles();
+};
+window.removeStoredFile=async id=>{await deleteSubjectFile(id);renderSubjectFiles();toast("تم حذف الملف")};
+window.sendStoredFileToAnalyzer=async id=>{
+  const files=await getSubjectFiles(activeSubjectId),record=files.find(f=>f.id===id);
+  if(!record)return;
+  nav("course-analyzer");
+  const s=state.subjects.find(x=>x.id===activeSubjectId);
+  $("courseName").value=s?.name||"";
+  try{
+    const dt=new DataTransfer();
+    dt.items.add(new File([record.blob],record.name,{type:record.type}));
+    $("courseFile").files=dt.files;
+    toast("تم نقل الملف إلى محلل المادة");
+  }catch{
+    toast("اختاري الملف يدويًا من محلل المادة");
+  }
+};
+
+/* ---------- Weekly anti-backlog planner ---------- */
+function chosenStudyDays(){
+  return [...document.querySelectorAll("#studyDaysPicker input:checked")].map(x=>x.value);
+}
+function subjectPriorityScore(s){
+  const studied=subjectMinutes(s.id);
+  const credits=s.credits||3;
+  const target=(s.targetHours||credits*2)*60;
+  const deficit=Math.max(0,target-studied);
+  return credits*100+deficit;
+}
+function generateBalancedPlan(){
+  let days=chosenStudyDays();
+  const requested=Math.max(1,Math.min(7,Number($("studyDaysCount").value)||5));
+  const allDays=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+  if(!days.length)days=allDays.slice(0,requested);
+  days=days.slice(0,requested);
+  const hours=Math.max(.5,Number($("studyHoursPerDay").value)||3);
+  if(!state.subjects.length){toast("أضيفي موادك أولًا");return null}
+  const sorted=[...state.subjects].sort((a,b)=>subjectPriorityScore(b)-subjectPriorityScore(a));
+  const totalMinutes=Math.round(hours*60);
+  const studyMinutes=Math.max(30,totalMinutes-20);
+  const blockLength=studyMinutes>=180?50:studyMinutes>=100?40:30;
+  const blocksPerDay=Math.max(1,Math.floor(studyMinutes/(blockLength+10)));
+  let cursor=0;
+  const plan=days.map((day,dayIndex)=>{
+    const blocks=[];
+    for(let b=0;b<blocksPerDay;b++){
+      const subject=sorted[cursor%sorted.length];cursor++;
+      const task=b===blocksPerDay-1&&dayIndex===days.length-1?"مراجعة أسبوعية + Active Recall":"دراسة جديدة ثم 10 دقائق Active Recall";
+      blocks.push({subject:subject.name,minutes:blockLength,task});
+    }
+    return{day,blocks,buffer:Math.max(10,totalMinutes-blocks.reduce((a,x)=>a+x.minutes,0))};
+  });
+  state.weeklyPlanSettings={days,daysCount:requested,hoursPerDay:hours,preferences:$("studyPlanPreferences").value.trim()};
+  save();
+  return plan;
+}
+function renderLocalWeeklyPlan(plan){
+  if(!plan)return;
+  $("weeklyStudyPlanResult").innerHTML=plan.map(d=>`<div class="plan-day">
+    <h3>${esc(d.day)}</h3>
+    ${d.blocks.map((b,i)=>`<div class="plan-block"><span class="plan-time">${i+1}. ${b.minutes} دقيقة</span><div><strong>${esc(b.subject)}</strong><br><small>${esc(b.task)}</small></div></div>`).join("")}
+    <div class="muted">وقت احتياطي: ${d.buffer} دقيقة للتأخير أو مراجعة ما لم يكتمل.</div>
+  </div>`).join("")+`<div class="medical-disclaimer">قاعدة منع التراكم: لا تنقلي أكثر من بلوك واحد لليوم التالي. عند ضياع يوم، استخدمي الوقت الاحتياطي وقلّلي الجديد بدل إلغاء المراجعة.</div>`;
+}
+async function generateAIWeeklyPlan(){
+  const local=generateBalancedPlan();renderLocalWeeklyPlan(local);
+  if(!local)return;
+  if(!window.FocusBloomCloud?.configured()){toast("ظهرت الخطة المحلية. فعّلي Supabase لاستخدام الذكاء الاصطناعي");return}
+  $("weeklyStudyPlanResult").innerHTML="<p>جارٍ تحسين الخطة بالذكاء الاصطناعي…</p>";
+  try{
+    const fn=(window.FOCUS_BLOOM_CONFIG||{}).WEEKLY_PLANNER_FUNCTION_NAME||"weekly-study-planner";
+    const data=await window.FocusBloomCloud.invoke(fn,{
+      subjects:state.subjects.map(s=>({name:s.name,credits:s.credits||3,studiedMinutes:subjectMinutes(s.id),targetHours:s.targetHours||0})),
+      days:chosenStudyDays().length?chosenStudyDays():local.map(x=>x.day),
+      hoursPerDay:Number($("studyHoursPerDay").value)||3,
+      preferences:$("studyPlanPreferences").value.trim()
+    });
+    $("weeklyStudyPlanResult").textContent=data.plan||"";
+  }catch(e){renderLocalWeeklyPlan(local);toast(`تعذر تحسين الخطة: ${e.message}`)}
+}
+function restorePlanSettings(){
+  const p=state.weeklyPlanSettings||{};
+  $("studyDaysCount").value=p.daysCount||5;$("studyHoursPerDay").value=p.hoursPerDay||3;$("studyPlanPreferences").value=p.preferences||"";
+  document.querySelectorAll("#studyDaysPicker input").forEach(x=>x.checked=(p.days||[]).includes(x.value));
+}
+
+document.querySelectorAll(".nav-link").forEach(n=>n.classList.toggle("active",n.dataset.page===page));const titles={dashboard:"مرحبًا بكِ في FocusBloom Pharmacy 👋",timer:"جلسة تركيز",subjects:"مواد الصيدلة","drug-vault":"Drug Vault",flashcards:"Flashcards",quiz:"Quiz Generator",planner:"Study Planner",trainer:"Pharmacy Trainer",stats:"الإحصائيات",achievements:"الإنجازات",assistant:"مساعد الصيدلة","subject-workspace":"ملفات المادة","drug-explorer":"Drug Explorer",curriculum:"Pharmacy Years Hub","course-analyzer":"محلل ملفات المواد",cloud:"الحساب والمزامنة",profile:"الملف الشخصي"};$("pageTitle").textContent=titles[page]||"FocusBloom";window.scrollTo({top:0,behavior:"smooth"});if(page==="flashcards")startReview();if(page==="trainer")startTrainer()}
 function render(){applyTheme();renderProfile();renderOptions();renderDashboard();renderSubjects();renderDrugs();renderFlashcards();renderSessions();renderPlans();renderTrainerMistakes();renderStats();renderAchievements()}
 function applyTheme(){document.body.classList.toggle("dark",state.settings.dark);$("themeToggle").textContent=state.settings.dark?"☀️ الوضع الفاتح":"🌙 الوضع الداكن"}
 function renderProfile(){const p=state.profile,initial=(p.name||"D").trim().charAt(0).toUpperCase();$("miniAvatar").textContent=$("profileAvatar").textContent=initial;$("miniName").textContent=$("profileDisplayName").textContent=p.name;$("miniMajor").textContent=$("profileDisplayMajor").textContent=p.major;$("profileDisplayUniversity").textContent=p.university;$("profileName").value=p.name;$("profileMajor").value=p.major;$("profileUniversity").value=p.university;$("dailyGoal").value=state.settings.dailyGoal}
@@ -368,7 +504,22 @@ function renderAdvancedProgress(){
 function renderDashboard(){const t=totals(),p=plantInfo(t.total);$("todayFocus").textContent=fmt(t.today);$("currentStreak").textContent=`${streak()} يوم`;$("drugCount").textContent=state.drugs.length;const due=getDueFlashcards();$("flashcardDue").textContent=due.length;$("plantVisual").textContent=p.icon;$("plantStage").textContent=p.stage;$("plantMessage").textContent=p.msg;$("plantLevel").textContent=`المستوى ${Math.floor(t.total/600)+1}`;const prog=p.next===p.from?100:Math.min(100,((t.total-p.from)/(p.next-p.from))*100);$("plantProgress").style.width=`${prog}%`;$("plantNext").textContent=p.next===p.from?"وصلتِ لأعلى مرحلة":`${fmt(p.next-t.total)} للمرحلة التالية`;$("dashboardSubjects").innerHTML=state.subjects.slice(0,4).map(s=>`<div class="item"><span><b style="color:${s.color}">●</b> ${esc(s.name)}</span><strong>${fmt(subjectMinutes(s.id))}</strong></div>`).join("");$("dashboardReview").innerHTML=due.length?due.slice(0,4).map(f=>`<div class="item"><span>${esc(f.front)}</span><span class="pill">مستحقة</span></div>`).join(""):'<div class="muted">لا توجد بطاقات مستحقة.</div>';renderWeeklyBars();$("weekTotalPill").textContent=fmt(t.week);renderChallenge();renderAdvancedProgress()}
 function renderChallenge(){const list=[["احفظي 5 أدوية","أضيفي أو راجعي خمس مواد فعالة اليوم."],["راجعي 10 Flashcards","جلسة مراجعة سريعة بالتكرار المتباعد."],["ادرسي 50 دقيقة","استخدمي وضع 50/10 لمادة صعبة."],["اختبار الفئات","حاولي الحصول على 80% في Pharmacy Trainer."],["راجعي أخطاءك","افتحي قائمة الأخطاء السابقة وراجعيها."]];if(state.challengeDate!==todayISO()){state.challengeDate=todayISO();state.challengeIndex=new Date().getDate()%list.length;save()}const c=list[state.challengeIndex];$("dailyChallengeTitle").textContent=c[0];$("dailyChallengeText").textContent=c[1];const done=state.completedChallenges.includes(todayISO());$("completeChallenge").textContent=done?"تم الإنجاز ✅":"تم الإنجاز";$("completeChallenge").disabled=done}
 function renderWeeklyBars(){const labels=["أحد","اثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"],days=[];for(let i=6;i>=0;i--){const d=startOfDay();d.setDate(d.getDate()-i);const n=new Date(d);n.setDate(n.getDate()+1);const m=state.sessions.filter(s=>{const x=new Date(s.endedAt);return x>=d&&x<n}).reduce((a,s)=>a+sessionMinutes(s),0);days.push({label:labels[d.getDay()],minutes:m})}const max=Math.max(1,...days.map(d=>d.minutes));$("weeklyBars").innerHTML=days.map(d=>`<div class="day-bar"><strong>${d.minutes?fmt(d.minutes):""}</strong><div class="bar" style="height:${Math.max(6,d.minutes/max*120)}px"></div><small>${d.label}</small></div>`).join("")}
-function renderSubjects(){$("subjectsCount").textContent=`${state.subjects.length} مواد`;$("subjectsList").innerHTML=state.subjects.map(s=>{const m=subjectMinutes(s.id),target=(s.targetHours||0)*60,p=target?Math.min(100,m/target*100):0;return`<div class="card subject-card"><div class="subject-color" style="background:${s.color}"></div><div><div class="card-head"><strong>${esc(s.name)}</strong><small>${fmt(m)}</small></div><div class="progress subject-progress"><div style="width:${p}%;background:${s.color}"></div></div><small class="muted">${s.slides?`${s.slides} سلايد · `:""}${target?`${Math.round(p)}% من الهدف`:"لا يوجد هدف"}</small></div><button class="danger-btn" onclick="deleteSubject('${s.id}')">حذف</button></div>`}).join("")}
+function renderSubjects(){
+  $("subjectsCount").textContent=`${state.subjects.length} مواد`;
+  $("subjectsList").innerHTML=state.subjects.length?state.subjects.map(s=>{
+    const m=subjectMinutes(s.id),target=(s.targetHours||0)*60,p=target?Math.min(100,m/target*100):0;
+    return`<div class="card subject-card" onclick="openSubjectWorkspace('${s.id}')">
+      <div class="subject-color" style="background:${s.color}"></div>
+      <div>
+        <div class="card-head"><strong>${esc(s.name)}</strong><small>${fmt(m)}</small></div>
+        <div class="progress subject-progress"><div style="width:${p}%;background:${s.color}"></div></div>
+        <small class="muted">${s.slides?`${s.slides} سلايد · `:""}${target?`${Math.round(p)}% من الهدف`:"لا يوجد هدف"}</small>
+        <div class="subject-open-hint">اضغطي لفتح الملفات والأدوات</div>
+      </div>
+      <button class="danger-btn" onclick="event.stopPropagation();deleteSubject('${s.id}')">حذف</button>
+    </div>`
+  }).join(""):'<div class="muted">أضيفي موادك من الخطة الدراسية باستخدام علامة +.</div>'
+}
 function masteryLabel(m){return{new:"جديد",learning:"قيد الحفظ",mastered:"متقن"}[m]}
 function safetyBadge(label,text){
   const lower=(text||"").toLowerCase();
@@ -634,6 +785,147 @@ function summaryToFlashcards(){
   save();render();toast(added?`تمت إضافة ${added} بطاقة`:"لم أتعرف تلقائيًا على أسئلة وأجوبة واضحة");
 }
 
+
+/* ---------- Subject file workspace (IndexedDB) ---------- */
+let activeSubjectId=null;
+const SUBJECT_DB_NAME="FocusBloomSubjectFiles";
+const SUBJECT_DB_VERSION=1;
+function openSubjectDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(SUBJECT_DB_NAME,SUBJECT_DB_VERSION);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("files")){const store=db.createObjectStore("files",{keyPath:"id"});store.createIndex("subjectId","subjectId")}};
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+  });
+}
+async function saveSubjectFile(subjectId,file){
+  const db=await openSubjectDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction("files","readwrite");
+    tx.objectStore("files").put({id:crypto.randomUUID(),subjectId,name:file.name,type:file.type,size:file.size,addedAt:new Date().toISOString(),blob:file});
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+}
+async function getSubjectFiles(subjectId){
+  const db=await openSubjectDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction("files","readonly"),idx=tx.objectStore("files").index("subjectId"),req=idx.getAll(subjectId);
+    req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);
+  });
+}
+async function deleteSubjectFile(id){
+  const db=await openSubjectDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction("files","readwrite");tx.objectStore("files").delete(id);
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+}
+async function renderSubjectFiles(){
+  if(!activeSubjectId)return;
+  const files=await getSubjectFiles(activeSubjectId);
+  $("subjectFilesList").innerHTML=files.length?files.map(f=>`<div class="file-row">
+    <div><strong>${esc(f.name)}</strong><div class="file-meta">${Math.ceil(f.size/1024)} KB · ${new Date(f.addedAt).toLocaleDateString("ar-JO")}</div></div>
+    <div class="hero-actions">
+      <button class="text-btn" onclick="sendStoredFileToAnalyzer('${f.id}')">تحليل</button>
+      <button class="danger-btn" onclick="removeStoredFile('${f.id}')">حذف</button>
+    </div>
+  </div>`).join(""):'<div class="muted">لم تتم إضافة ملفات لهذه المادة بعد.</div>'
+}
+window.openSubjectWorkspace=async id=>{
+  const s=state.subjects.find(x=>x.id===id);if(!s)return;
+  activeSubjectId=id;nav("subject-workspace");
+  $("workspaceSubjectTitle").textContent=s.name;
+  $("workspaceSubjectHours").textContent=fmt(subjectMinutes(id));
+  $("workspaceSubjectStats").innerHTML=`
+    <div class="item"><span>وقت الدراسة المسجل</span><strong>${fmt(subjectMinutes(id))}</strong></div>
+    <div class="item"><span>عدد السلايدات</span><strong>${s.slides||0}</strong></div>
+    <div class="item"><span>الهدف الأسبوعي المقترح</span><strong>${s.credits?`${Math.max(2,s.credits)} ساعات`:"حدديه من الخطة"}</strong></div>`;
+  await renderSubjectFiles();
+};
+window.removeStoredFile=async id=>{await deleteSubjectFile(id);renderSubjectFiles();toast("تم حذف الملف")};
+window.sendStoredFileToAnalyzer=async id=>{
+  const files=await getSubjectFiles(activeSubjectId),record=files.find(f=>f.id===id);
+  if(!record)return;
+  nav("course-analyzer");
+  const s=state.subjects.find(x=>x.id===activeSubjectId);
+  $("courseName").value=s?.name||"";
+  try{
+    const dt=new DataTransfer();
+    dt.items.add(new File([record.blob],record.name,{type:record.type}));
+    $("courseFile").files=dt.files;
+    toast("تم نقل الملف إلى محلل المادة");
+  }catch{
+    toast("اختاري الملف يدويًا من محلل المادة");
+  }
+};
+
+/* ---------- Weekly anti-backlog planner ---------- */
+function chosenStudyDays(){
+  return [...document.querySelectorAll("#studyDaysPicker input:checked")].map(x=>x.value);
+}
+function subjectPriorityScore(s){
+  const studied=subjectMinutes(s.id);
+  const credits=s.credits||3;
+  const target=(s.targetHours||credits*2)*60;
+  const deficit=Math.max(0,target-studied);
+  return credits*100+deficit;
+}
+function generateBalancedPlan(){
+  let days=chosenStudyDays();
+  const requested=Math.max(1,Math.min(7,Number($("studyDaysCount").value)||5));
+  const allDays=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+  if(!days.length)days=allDays.slice(0,requested);
+  days=days.slice(0,requested);
+  const hours=Math.max(.5,Number($("studyHoursPerDay").value)||3);
+  if(!state.subjects.length){toast("أضيفي موادك أولًا");return null}
+  const sorted=[...state.subjects].sort((a,b)=>subjectPriorityScore(b)-subjectPriorityScore(a));
+  const totalMinutes=Math.round(hours*60);
+  const studyMinutes=Math.max(30,totalMinutes-20);
+  const blockLength=studyMinutes>=180?50:studyMinutes>=100?40:30;
+  const blocksPerDay=Math.max(1,Math.floor(studyMinutes/(blockLength+10)));
+  let cursor=0;
+  const plan=days.map((day,dayIndex)=>{
+    const blocks=[];
+    for(let b=0;b<blocksPerDay;b++){
+      const subject=sorted[cursor%sorted.length];cursor++;
+      const task=b===blocksPerDay-1&&dayIndex===days.length-1?"مراجعة أسبوعية + Active Recall":"دراسة جديدة ثم 10 دقائق Active Recall";
+      blocks.push({subject:subject.name,minutes:blockLength,task});
+    }
+    return{day,blocks,buffer:Math.max(10,totalMinutes-blocks.reduce((a,x)=>a+x.minutes,0))};
+  });
+  state.weeklyPlanSettings={days,daysCount:requested,hoursPerDay:hours,preferences:$("studyPlanPreferences").value.trim()};
+  save();
+  return plan;
+}
+function renderLocalWeeklyPlan(plan){
+  if(!plan)return;
+  $("weeklyStudyPlanResult").innerHTML=plan.map(d=>`<div class="plan-day">
+    <h3>${esc(d.day)}</h3>
+    ${d.blocks.map((b,i)=>`<div class="plan-block"><span class="plan-time">${i+1}. ${b.minutes} دقيقة</span><div><strong>${esc(b.subject)}</strong><br><small>${esc(b.task)}</small></div></div>`).join("")}
+    <div class="muted">وقت احتياطي: ${d.buffer} دقيقة للتأخير أو مراجعة ما لم يكتمل.</div>
+  </div>`).join("")+`<div class="medical-disclaimer">قاعدة منع التراكم: لا تنقلي أكثر من بلوك واحد لليوم التالي. عند ضياع يوم، استخدمي الوقت الاحتياطي وقلّلي الجديد بدل إلغاء المراجعة.</div>`;
+}
+async function generateAIWeeklyPlan(){
+  const local=generateBalancedPlan();renderLocalWeeklyPlan(local);
+  if(!local)return;
+  if(!window.FocusBloomCloud?.configured()){toast("ظهرت الخطة المحلية. فعّلي Supabase لاستخدام الذكاء الاصطناعي");return}
+  $("weeklyStudyPlanResult").innerHTML="<p>جارٍ تحسين الخطة بالذكاء الاصطناعي…</p>";
+  try{
+    const fn=(window.FOCUS_BLOOM_CONFIG||{}).WEEKLY_PLANNER_FUNCTION_NAME||"weekly-study-planner";
+    const data=await window.FocusBloomCloud.invoke(fn,{
+      subjects:state.subjects.map(s=>({name:s.name,credits:s.credits||3,studiedMinutes:subjectMinutes(s.id),targetHours:s.targetHours||0})),
+      days:chosenStudyDays().length?chosenStudyDays():local.map(x=>x.day),
+      hoursPerDay:Number($("studyHoursPerDay").value)||3,
+      preferences:$("studyPlanPreferences").value.trim()
+    });
+    $("weeklyStudyPlanResult").textContent=data.plan||"";
+  }catch(e){renderLocalWeeklyPlan(local);toast(`تعذر تحسين الخطة: ${e.message}`)}
+}
+function restorePlanSettings(){
+  const p=state.weeklyPlanSettings||{};
+  $("studyDaysCount").value=p.daysCount||5;$("studyHoursPerDay").value=p.hoursPerDay||3;$("studyPlanPreferences").value=p.preferences||"";
+  document.querySelectorAll("#studyDaysPicker input").forEach(x=>x.checked=(p.days||[]).includes(x.value));
+}
+
 document.querySelectorAll(".nav-link").forEach(b=>b.onclick=()=>nav(b.dataset.page));
 document.querySelectorAll("[data-jump]").forEach(b=>b.onclick=()=>nav(b.dataset.jump));
 $("todayDate").textContent=new Date().toLocaleDateString("ar-JO",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
@@ -714,6 +1006,26 @@ $("signInButton").onclick=signInCloud;
 $("signOutButton").onclick=signOutCloud;
 $("pushCloudButton").onclick=pushCloud;
 $("pullCloudButton").onclick=pullCloud;
+$("backToSubjects").onclick=()=>nav("subjects");
+$("subjectFileUpload").onchange=async e=>{
+  if(!activeSubjectId)return;
+  for(const file of e.target.files)await saveSubjectFile(activeSubjectId,file);
+  e.target.value="";await renderSubjectFiles();toast("تم حفظ الملفات داخل المادة");
+};
+$("workspaceAnalyzeButton").onclick=async()=>{
+  const files=await getSubjectFiles(activeSubjectId);
+  if(files.length)sendStoredFileToAnalyzer(files[0].id);else toast("أضيفي ملفًا أولًا");
+};
+$("workspaceTimerButton").onclick=()=>{
+  nav("timer");$("timerSubject").value=activeSubjectId;toast("تم اختيار المادة في المؤقت");
+};
+$("workspaceFlashcardButton").onclick=()=>{
+  nav("flashcards");$("flashSubject").value=activeSubjectId;toast("تم اختيار المادة للبطاقة");
+};
+$("workspacePlanButton").onclick=()=>{nav("subjects");setTimeout(()=>document.querySelector(".weekly-planner-card")?.scrollIntoView({behavior:"smooth"}),150)};
+$("generateLocalStudyPlan").onclick=()=>renderLocalWeeklyPlan(generateBalancedPlan());
+$("generateAIStudyPlan").onclick=generateAIWeeklyPlan;
+
 $("rxDrugSearchButton").onclick=rxNormSearch;
 $("yearFilter").onchange=renderYearModules;
 $("extractCourseButton").onclick=extractCourseFile;
@@ -721,4 +1033,4 @@ $("summarizeCourseButton").onclick=summarizeCourse;
 $("copySummaryButton").onclick=copyCourseSummary;
 $("downloadSummaryButton").onclick=downloadCourseSummary;
 $("makeFlashcardsButton").onclick=summaryToFlashcards;
-render();updateTimer();startReview();startTrainer();updateCloudStatus();renderYearModules();
+render();updateTimer();startReview();startTrainer();updateCloudStatus();renderYearModules();restorePlanSettings();
