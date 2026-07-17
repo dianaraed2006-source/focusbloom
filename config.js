@@ -7,5 +7,6 @@ window.FOCUS_BLOOM_CONFIG = {
   SUPABASE_URL: "",
   SUPABASE_PUBLISHABLE_KEY: "",
   AI_FUNCTION_NAME: "pharmacy-ai",
-  VISION_FUNCTION_NAME: "medicine-vision"
+  VISION_FUNCTION_NAME: "medicine-vision",
+  COURSE_SUMMARIZER_FUNCTION_NAME: "course-summarizer"
 };

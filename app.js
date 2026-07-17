@@ -124,7 +124,141 @@ async function recognizeMedicine(){
   }catch(e){$("visionResult").innerHTML=`<p>${esc(e.message)}</p>`}
 }
 
-document.querySelectorAll(".nav-link").forEach(n=>n.classList.toggle("active",n.dataset.page===page));const titles={dashboard:"مرحبًا بكِ في FocusBloom Pharmacy 👋",timer:"جلسة تركيز",subjects:"مواد الصيدلة","drug-vault":"Drug Vault",flashcards:"Flashcards",quiz:"Quiz Generator",planner:"Study Planner",trainer:"Pharmacy Trainer",stats:"الإحصائيات",achievements:"الإنجازات",assistant:"مساعد الصيدلة",cloud:"الحساب والمزامنة",profile:"الملف الشخصي"};$("pageTitle").textContent=titles[page]||"FocusBloom";window.scrollTo({top:0,behavior:"smooth"});if(page==="flashcards")startReview();if(page==="trainer")startTrainer()}
+
+const pharmacyYears=[
+  {year:"3",title:"السنة الثالثة — Foundations to Systems",courses:["Pharmacology","Medicinal Chemistry","Pharmaceutics","Instrumental Analysis","Pathophysiology"],skills:["Drug class patterns","Mechanisms of action","SAR basics","Dosage-form principles","Analytical calculations"],tools:["Class comparison tables","Mechanism maps","Drug → Class quizzes","Calculation practice"]},
+  {year:"4",title:"السنة الرابعة — Therapeutics & Integration",courses:["Clinical Pharmacy","Therapeutics","Pharmacokinetics","Toxicology","Biopharmaceutics"],skills:["Treatment algorithms","Dose adjustment concepts","Interactions","Monitoring parameters","Case interpretation"],tools:["Patient-case worksheets","Renal/hepatic flags","Guideline comparisons","Counselling checklists"]},
+  {year:"5",title:"السنة الخامسة — Practice & Clinical Reasoning",courses:["Advanced Therapeutics","Hospital/Community Training","Pharmacovigilance","Research","Graduation Project"],skills:["Clinical decision reasoning","Medication review","Evidence appraisal","Patient counselling","Safety reporting"],tools:["Case simulations","SOAP notes","Journal-club templates","Drug information responses"]}
+];
+function renderYearModules(){
+  const filter=$("yearFilter").value;
+  const arr=pharmacyYears.filter(y=>filter==="all"||y.year===filter);
+  $("yearModules").innerHTML=arr.map(y=>`<div class="year-card"><span class="year-badge">Year ${y.year}</span><h3>${esc(y.title)}</h3><strong>مواد شائعة</strong><ul>${y.courses.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><strong>ما يجب إتقانه</strong><ul>${y.skills.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><strong>أدوات داخل الموقع</strong><ul>${y.tools.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")
+}
+
+async function rxNormSearch(){
+  const term=$("rxDrugSearch").value.trim();
+  if(!term){toast("اكتبي اسم دواء");return}
+  $("rxDrugStatus").textContent="جارٍ البحث في RxNorm…";
+  $("rxDrugResults").innerHTML="";
+  try{
+    const res=await fetch(`https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(term)}`);
+    const data=await res.json();
+    const groups=data.drugGroup?.conceptGroup||[];
+    const products=[];
+    groups.forEach(g=>(g.conceptProperties||[]).forEach(p=>products.push({
+      tty:g.tty||"",
+      rxcui:p.rxcui,
+      name:p.name,
+      synonym:p.synonym||""
+    })));
+    const unique=[...new Map(products.map(p=>[p.rxcui,p])).values()];
+    if(!unique.length) throw new Error("لم يتم العثور على منتجات أو تركيزات مطابقة");
+    const generic=unique.filter(p=>["SCD","SCDC","SCDF"].includes(p.tty));
+    const brands=unique.filter(p=>["SBD","SBDC","SBDF"].includes(p.tty));
+    const packs=unique.filter(p=>["BPCK","GPCK"].includes(p.tty));
+    $("rxDrugStatus").textContent=`تم العثور على ${unique.length} مفهوم/منتج دوائي.`;
+    const section=(title,arr)=>arr.length?`<div class="rx-group"><h3>${title}</h3><div class="rx-product-grid">${arr.slice(0,60).map(p=>`<div class="rx-product"><h4>${esc(p.name)}</h4><small>${esc(p.tty)} · RxCUI ${esc(p.rxcui)}</small>${p.synonym?`<p class="muted">${esc(p.synonym)}</p>`:""}<button class="text-btn" onclick="lookupLabelFromExplorer('${esc(term).replace(/'/g,"&#39;")}')">فتح معلومات النشرة</button></div>`).join("")}</div></div>`:"";
+    $("rxDrugResults").innerHTML=section("Generic clinical products — التركيزات والأشكال",generic)+section("Branded products — المنتجات التجارية",brands)+section("Packs — العبوات المركبة",packs);
+  }catch(e){
+    $("rxDrugStatus").textContent=e.message;
+  }
+}
+window.lookupLabelFromExplorer=term=>{
+  nav("drug-vault");
+  $("fdaSearchInput").value=term;
+  searchOpenFDA();
+};
+
+let extractedCourseContent="",lastCourseSummary="";
+async function extractPDF(file){
+  const pdfjs=await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+  const pdf=await pdfjs.getDocument({data:await file.arrayBuffer()}).promise;
+  const parts=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    parts.push(`\n--- Page ${i} ---\n`+content.items.map(x=>x.str).join(" "));
+  }
+  return parts.join("\n");
+}
+async function extractDOCX(file){
+  const result=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
+  return result.value;
+}
+async function extractPPTX(file){
+  const zip=await JSZip.loadAsync(await file.arrayBuffer());
+  const slideNames=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a,b)=>{
+    const na=Number(a.match(/slide(\d+)/)[1]),nb=Number(b.match(/slide(\d+)/)[1]);return na-nb;
+  });
+  const slides=[];
+  for(const name of slideNames){
+    const xml=await zip.file(name).async("text");
+    const texts=[...xml.matchAll(/<a:t>([\s\S]*?)<\/a:t>/g)].map(m=>m[1].replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">"));
+    slides.push(`\n--- ${name.match(/slide\d+/)[0]} ---\n${texts.join(" ")}`);
+  }
+  return slides.join("\n");
+}
+async function extractCourseFile(){
+  const file=$("courseFile").files[0];
+  if(!file){toast("اختاري ملفًا");return}
+  $("courseExtractionStatus").textContent=`جارٍ استخراج ${file.name}…`;
+  try{
+    const ext=file.name.split(".").pop().toLowerCase();
+    if(ext==="pdf") extractedCourseContent=await extractPDF(file);
+    else if(ext==="docx") extractedCourseContent=await extractDOCX(file);
+    else if(ext==="pptx") extractedCourseContent=await extractPPTX(file);
+    else extractedCourseContent=await file.text();
+    $("extractedCourseText").value=extractedCourseContent;
+    $("courseExtractionStatus").textContent=`تم استخراج ${extractedCourseContent.length.toLocaleString()} حرف. راجعي المعاينة ثم أنشئي الحزمة.`;
+    if(extractedCourseContent.trim().length<100) toast("النص المستخرج قليل؛ قد يكون الملف صورًا فقط");
+  }catch(e){
+    $("courseExtractionStatus").textContent=`فشل الاستخراج: ${e.message}`;
+  }
+}
+async function summarizeCourse(){
+  const text=$("extractedCourseText").value.trim();
+  if(text.length<50){toast("استخرجي الملف أولًا");return}
+  if(!window.FocusBloomCloud?.configured()){toast("فعّلي Supabase أولًا");return}
+  $("courseSummaryResult").innerHTML="<p>جارٍ إنشاء الحزمة الدراسية… قد يستغرق ذلك قليلًا.</p>";
+  try{
+    const fn=(window.FOCUS_BLOOM_CONFIG||{}).COURSE_SUMMARIZER_FUNCTION_NAME||"course-summarizer";
+    const data=await window.FocusBloomCloud.invoke(fn,{
+      text,
+      mode:$("summaryMode").value,
+      language:$("summaryLanguage").value,
+      course:$("courseName").value.trim(),
+      year:$("courseYear").value,
+      professorStyle:$("professorStyle").value.trim()
+    });
+    lastCourseSummary=data.summary||"";
+    $("courseSummaryResult").textContent=lastCourseSummary+(data.truncated?"\n\n⚠️ تم اختصار الملف بسبب الحجم؛ قسّميه إلى أجزاء للحصول على تغطية أدق.":"");
+  }catch(e){
+    $("courseSummaryResult").innerHTML=`<p>${esc(e.message)}</p>`;
+  }
+}
+function copyCourseSummary(){if(!lastCourseSummary){toast("لا توجد نتيجة");return}navigator.clipboard.writeText(lastCourseSummary);toast("تم النسخ")}
+function downloadCourseSummary(){
+  if(!lastCourseSummary){toast("لا توجد نتيجة");return}
+  const blob=new Blob([lastCourseSummary],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${$("courseName").value||"course"}-study-pack.txt`;a.click();URL.revokeObjectURL(a.href);
+}
+function summaryToFlashcards(){
+  if(!lastCourseSummary){toast("لا توجد نتيجة");return}
+  const lines=lastCourseSummary.split("\n").map(x=>x.trim()).filter(Boolean);
+  let added=0;
+  for(let i=0;i<lines.length-1&&added<20;i++){
+    if(lines[i].endsWith("?")||/^(Q|Question|سؤال)\s*\d*/i.test(lines[i])){
+      const answer=lines[i+1].replace(/^(A|Answer|الإجابة)\s*[:\-]?\s*/i,"");
+      state.flashcards.push({id:crypto.randomUUID(),front:lines[i],back:answer,subjectId:$("flashSubject").value||state.subjects[0]?.id,nextReview:new Date().toISOString(),interval:0});
+      added++;
+    }
+  }
+  save();render();toast(added?`تمت إضافة ${added} بطاقة`:"لم أتعرف تلقائيًا على أسئلة وأجوبة واضحة");
+}
+
+document.querySelectorAll(".nav-link").forEach(n=>n.classList.toggle("active",n.dataset.page===page));const titles={dashboard:"مرحبًا بكِ في FocusBloom Pharmacy 👋",timer:"جلسة تركيز",subjects:"مواد الصيدلة","drug-vault":"Drug Vault",flashcards:"Flashcards",quiz:"Quiz Generator",planner:"Study Planner",trainer:"Pharmacy Trainer",stats:"الإحصائيات",achievements:"الإنجازات",assistant:"مساعد الصيدلة","drug-explorer":"Drug Explorer",curriculum:"Pharmacy Years Hub","course-analyzer":"محلل ملفات المواد",cloud:"الحساب والمزامنة",profile:"الملف الشخصي"};$("pageTitle").textContent=titles[page]||"FocusBloom";window.scrollTo({top:0,behavior:"smooth"});if(page==="flashcards")startReview();if(page==="trainer")startTrainer()}
 function render(){applyTheme();renderProfile();renderOptions();renderDashboard();renderSubjects();renderDrugs();renderFlashcards();renderSessions();renderPlans();renderTrainerMistakes();renderStats();renderAchievements()}
 function applyTheme(){document.body.classList.toggle("dark",state.settings.dark);$("themeToggle").textContent=state.settings.dark?"☀️ الوضع الفاتح":"🌙 الوضع الداكن"}
 function renderProfile(){const p=state.profile,initial=(p.name||"D").trim().charAt(0).toUpperCase();$("miniAvatar").textContent=$("profileAvatar").textContent=initial;$("miniName").textContent=$("profileDisplayName").textContent=p.name;$("miniMajor").textContent=$("profileDisplayMajor").textContent=p.major;$("profileDisplayUniversity").textContent=p.university;$("profileName").value=p.name;$("profileMajor").value=p.major;$("profileUniversity").value=p.university;$("dailyGoal").value=state.settings.dailyGoal}
@@ -298,6 +432,140 @@ async function recognizeMedicine(){
   }catch(e){$("visionResult").innerHTML=`<p>${esc(e.message)}</p>`}
 }
 
+
+const pharmacyYears=[
+  {year:"3",title:"السنة الثالثة — Foundations to Systems",courses:["Pharmacology","Medicinal Chemistry","Pharmaceutics","Instrumental Analysis","Pathophysiology"],skills:["Drug class patterns","Mechanisms of action","SAR basics","Dosage-form principles","Analytical calculations"],tools:["Class comparison tables","Mechanism maps","Drug → Class quizzes","Calculation practice"]},
+  {year:"4",title:"السنة الرابعة — Therapeutics & Integration",courses:["Clinical Pharmacy","Therapeutics","Pharmacokinetics","Toxicology","Biopharmaceutics"],skills:["Treatment algorithms","Dose adjustment concepts","Interactions","Monitoring parameters","Case interpretation"],tools:["Patient-case worksheets","Renal/hepatic flags","Guideline comparisons","Counselling checklists"]},
+  {year:"5",title:"السنة الخامسة — Practice & Clinical Reasoning",courses:["Advanced Therapeutics","Hospital/Community Training","Pharmacovigilance","Research","Graduation Project"],skills:["Clinical decision reasoning","Medication review","Evidence appraisal","Patient counselling","Safety reporting"],tools:["Case simulations","SOAP notes","Journal-club templates","Drug information responses"]}
+];
+function renderYearModules(){
+  const filter=$("yearFilter").value;
+  const arr=pharmacyYears.filter(y=>filter==="all"||y.year===filter);
+  $("yearModules").innerHTML=arr.map(y=>`<div class="year-card"><span class="year-badge">Year ${y.year}</span><h3>${esc(y.title)}</h3><strong>مواد شائعة</strong><ul>${y.courses.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><strong>ما يجب إتقانه</strong><ul>${y.skills.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><strong>أدوات داخل الموقع</strong><ul>${y.tools.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")
+}
+
+async function rxNormSearch(){
+  const term=$("rxDrugSearch").value.trim();
+  if(!term){toast("اكتبي اسم دواء");return}
+  $("rxDrugStatus").textContent="جارٍ البحث في RxNorm…";
+  $("rxDrugResults").innerHTML="";
+  try{
+    const res=await fetch(`https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(term)}`);
+    const data=await res.json();
+    const groups=data.drugGroup?.conceptGroup||[];
+    const products=[];
+    groups.forEach(g=>(g.conceptProperties||[]).forEach(p=>products.push({
+      tty:g.tty||"",
+      rxcui:p.rxcui,
+      name:p.name,
+      synonym:p.synonym||""
+    })));
+    const unique=[...new Map(products.map(p=>[p.rxcui,p])).values()];
+    if(!unique.length) throw new Error("لم يتم العثور على منتجات أو تركيزات مطابقة");
+    const generic=unique.filter(p=>["SCD","SCDC","SCDF"].includes(p.tty));
+    const brands=unique.filter(p=>["SBD","SBDC","SBDF"].includes(p.tty));
+    const packs=unique.filter(p=>["BPCK","GPCK"].includes(p.tty));
+    $("rxDrugStatus").textContent=`تم العثور على ${unique.length} مفهوم/منتج دوائي.`;
+    const section=(title,arr)=>arr.length?`<div class="rx-group"><h3>${title}</h3><div class="rx-product-grid">${arr.slice(0,60).map(p=>`<div class="rx-product"><h4>${esc(p.name)}</h4><small>${esc(p.tty)} · RxCUI ${esc(p.rxcui)}</small>${p.synonym?`<p class="muted">${esc(p.synonym)}</p>`:""}<button class="text-btn" onclick="lookupLabelFromExplorer('${esc(term).replace(/'/g,"&#39;")}')">فتح معلومات النشرة</button></div>`).join("")}</div></div>`:"";
+    $("rxDrugResults").innerHTML=section("Generic clinical products — التركيزات والأشكال",generic)+section("Branded products — المنتجات التجارية",brands)+section("Packs — العبوات المركبة",packs);
+  }catch(e){
+    $("rxDrugStatus").textContent=e.message;
+  }
+}
+window.lookupLabelFromExplorer=term=>{
+  nav("drug-vault");
+  $("fdaSearchInput").value=term;
+  searchOpenFDA();
+};
+
+let extractedCourseContent="",lastCourseSummary="";
+async function extractPDF(file){
+  const pdfjs=await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+  const pdf=await pdfjs.getDocument({data:await file.arrayBuffer()}).promise;
+  const parts=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    parts.push(`\n--- Page ${i} ---\n`+content.items.map(x=>x.str).join(" "));
+  }
+  return parts.join("\n");
+}
+async function extractDOCX(file){
+  const result=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
+  return result.value;
+}
+async function extractPPTX(file){
+  const zip=await JSZip.loadAsync(await file.arrayBuffer());
+  const slideNames=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a,b)=>{
+    const na=Number(a.match(/slide(\d+)/)[1]),nb=Number(b.match(/slide(\d+)/)[1]);return na-nb;
+  });
+  const slides=[];
+  for(const name of slideNames){
+    const xml=await zip.file(name).async("text");
+    const texts=[...xml.matchAll(/<a:t>([\s\S]*?)<\/a:t>/g)].map(m=>m[1].replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">"));
+    slides.push(`\n--- ${name.match(/slide\d+/)[0]} ---\n${texts.join(" ")}`);
+  }
+  return slides.join("\n");
+}
+async function extractCourseFile(){
+  const file=$("courseFile").files[0];
+  if(!file){toast("اختاري ملفًا");return}
+  $("courseExtractionStatus").textContent=`جارٍ استخراج ${file.name}…`;
+  try{
+    const ext=file.name.split(".").pop().toLowerCase();
+    if(ext==="pdf") extractedCourseContent=await extractPDF(file);
+    else if(ext==="docx") extractedCourseContent=await extractDOCX(file);
+    else if(ext==="pptx") extractedCourseContent=await extractPPTX(file);
+    else extractedCourseContent=await file.text();
+    $("extractedCourseText").value=extractedCourseContent;
+    $("courseExtractionStatus").textContent=`تم استخراج ${extractedCourseContent.length.toLocaleString()} حرف. راجعي المعاينة ثم أنشئي الحزمة.`;
+    if(extractedCourseContent.trim().length<100) toast("النص المستخرج قليل؛ قد يكون الملف صورًا فقط");
+  }catch(e){
+    $("courseExtractionStatus").textContent=`فشل الاستخراج: ${e.message}`;
+  }
+}
+async function summarizeCourse(){
+  const text=$("extractedCourseText").value.trim();
+  if(text.length<50){toast("استخرجي الملف أولًا");return}
+  if(!window.FocusBloomCloud?.configured()){toast("فعّلي Supabase أولًا");return}
+  $("courseSummaryResult").innerHTML="<p>جارٍ إنشاء الحزمة الدراسية… قد يستغرق ذلك قليلًا.</p>";
+  try{
+    const fn=(window.FOCUS_BLOOM_CONFIG||{}).COURSE_SUMMARIZER_FUNCTION_NAME||"course-summarizer";
+    const data=await window.FocusBloomCloud.invoke(fn,{
+      text,
+      mode:$("summaryMode").value,
+      language:$("summaryLanguage").value,
+      course:$("courseName").value.trim(),
+      year:$("courseYear").value,
+      professorStyle:$("professorStyle").value.trim()
+    });
+    lastCourseSummary=data.summary||"";
+    $("courseSummaryResult").textContent=lastCourseSummary+(data.truncated?"\n\n⚠️ تم اختصار الملف بسبب الحجم؛ قسّميه إلى أجزاء للحصول على تغطية أدق.":"");
+  }catch(e){
+    $("courseSummaryResult").innerHTML=`<p>${esc(e.message)}</p>`;
+  }
+}
+function copyCourseSummary(){if(!lastCourseSummary){toast("لا توجد نتيجة");return}navigator.clipboard.writeText(lastCourseSummary);toast("تم النسخ")}
+function downloadCourseSummary(){
+  if(!lastCourseSummary){toast("لا توجد نتيجة");return}
+  const blob=new Blob([lastCourseSummary],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${$("courseName").value||"course"}-study-pack.txt`;a.click();URL.revokeObjectURL(a.href);
+}
+function summaryToFlashcards(){
+  if(!lastCourseSummary){toast("لا توجد نتيجة");return}
+  const lines=lastCourseSummary.split("\n").map(x=>x.trim()).filter(Boolean);
+  let added=0;
+  for(let i=0;i<lines.length-1&&added<20;i++){
+    if(lines[i].endsWith("?")||/^(Q|Question|سؤال)\s*\d*/i.test(lines[i])){
+      const answer=lines[i+1].replace(/^(A|Answer|الإجابة)\s*[:\-]?\s*/i,"");
+      state.flashcards.push({id:crypto.randomUUID(),front:lines[i],back:answer,subjectId:$("flashSubject").value||state.subjects[0]?.id,nextReview:new Date().toISOString(),interval:0});
+      added++;
+    }
+  }
+  save();render();toast(added?`تمت إضافة ${added} بطاقة`:"لم أتعرف تلقائيًا على أسئلة وأجوبة واضحة");
+}
+
 document.querySelectorAll(".nav-link").forEach(b=>b.onclick=()=>nav(b.dataset.page));
 document.querySelectorAll("[data-jump]").forEach(b=>b.onclick=()=>nav(b.dataset.jump));
 $("todayDate").textContent=new Date().toLocaleDateString("ar-JO",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
@@ -378,4 +646,11 @@ $("signInButton").onclick=signInCloud;
 $("signOutButton").onclick=signOutCloud;
 $("pushCloudButton").onclick=pushCloud;
 $("pullCloudButton").onclick=pullCloud;
-render();updateTimer();startReview();startTrainer();updateCloudStatus();
+$("rxDrugSearchButton").onclick=rxNormSearch;
+$("yearFilter").onchange=renderYearModules;
+$("extractCourseButton").onclick=extractCourseFile;
+$("summarizeCourseButton").onclick=summarizeCourse;
+$("copySummaryButton").onclick=copyCourseSummary;
+$("downloadSummaryButton").onclick=downloadCourseSummary;
+$("makeFlashcardsButton").onclick=summaryToFlashcards;
+render();updateTimer();startReview();startTrainer();updateCloudStatus();renderYearModules();

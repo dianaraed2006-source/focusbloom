@@ -30,6 +30,9 @@
       <button class="nav-link" data-page="quiz">📝 <span>Quiz</span></button>
       <button class="nav-link" data-page="planner">📅 <span>Planner</span></button>
       <button class="nav-link" data-page="trainer">🧪 <span>Trainer</span></button>
+      <button class="nav-link" data-page="drug-explorer">🔎 <span>Drug Explorer</span></button>
+      <button class="nav-link" data-page="curriculum">🎓 <span>Pharmacy Years</span></button>
+      <button class="nav-link" data-page="course-analyzer">📄 <span>محلل المواد</span></button>
       <button class="nav-link" data-page="stats">📊 <span>الإحصائيات</span></button>
       <button class="nav-link" data-page="achievements">🏆 <span>الإنجازات</span></button>
       <button class="nav-link" data-page="assistant">🤖 <span>مساعد الصيدلة</span></button>
@@ -330,6 +333,117 @@
       </div>
     </section>
 
+
+    <section id="drug-explorer" class="page">
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2>Drug Explorer — قاعدة أدوية مباشرة</h2>
+            <p class="muted">ابحثي بالاسم العلمي أو التجاري لعرض الأشكال الصيدلانية والتركيزات المسجلة من RxNorm، ثم افتحي معلومات النشرة من openFDA.</p>
+          </div>
+          <span class="pill">RxNorm + openFDA</span>
+        </div>
+
+        <div class="drug-explorer-search">
+          <input id="rxDrugSearch" placeholder="مثال: amoxicillin أو Augmentin أو metformin">
+          <button id="rxDrugSearchButton" class="primary-btn" type="button">بحث</button>
+        </div>
+
+        <div class="medical-disclaimer">
+          ⚠️ التركيزات والأشكال الظاهرة هي منتجات/مفاهيم مسجلة في قواعد أمريكية، وليست توصية بجرعة لمريض.
+          الجرعة العلاجية تعتمد على الاستطباب والعمر والوزن ووظائف الكلى والكبد والحمل والتداخلات والبروتوكول المحلي.
+        </div>
+
+        <div id="rxDrugStatus" class="muted" style="margin:14px 0"></div>
+        <div id="rxDrugResults" class="rx-results"></div>
+      </article>
+    </section>
+
+    <section id="curriculum" class="page">
+      <article class="card">
+        <div class="card-head">
+          <div><h2>Pharmacy Years Hub</h2><p class="muted">أدوات ومهارات مقترحة لطلاب السنة الثالثة والرابعة والخامسة.</p></div>
+          <select id="yearFilter" class="small-select">
+            <option value="all">كل السنوات</option>
+            <option value="3">السنة الثالثة</option>
+            <option value="4">السنة الرابعة</option>
+            <option value="5">السنة الخامسة</option>
+          </select>
+        </div>
+        <div id="yearModules" class="year-grid"></div>
+      </article>
+    </section>
+
+    <section id="course-analyzer" class="page">
+      <div class="two-col analyzer-layout">
+        <article class="card">
+          <div class="card-head">
+            <div><h2>محلل ملفات المواد</h2><p class="muted">ارفعي PDF أو PPTX أو DOCX أو TXT ليتم استخراج النص وتحويله إلى حزمة دراسة.</p></div>
+            <span class="pill">AI Study Pack</span>
+          </div>
+
+          <div class="medical-disclaimer">
+            للحصول على أفضل نتيجة: استخدمي ملفات نصية واضحة. ملفات PDF المصورة أو السلايدات التي تعتمد على صور فقط قد تحتاج OCR غير متوفر في هذه النسخة.
+          </div>
+
+          <form id="courseAnalyzerForm" class="stack-form">
+            <input id="courseFile" type="file" accept=".pdf,.pptx,.docx,.txt,.md,.html" required>
+            <div class="select-row">
+              <label>اسم المادة<input id="courseName" placeholder="مثال: Pharmacology I"></label>
+              <label>السنة
+                <select id="courseYear">
+                  <option value="Third year">السنة الثالثة</option>
+                  <option value="Fourth year">السنة الرابعة</option>
+                  <option value="Fifth year">السنة الخامسة</option>
+                </select>
+              </label>
+            </div>
+            <label>شكل المخرجات
+              <select id="summaryMode">
+                <option value="fullpack">حزمة كاملة: تلخيص + شرح + امتحان + Flashcards</option>
+                <option value="comprehensive">تلخيص شامل كامل</option>
+                <option value="exam">أهم نقاط الامتحان والفخاخ</option>
+                <option value="memorize">نسخة للحفظ وActive Recall</option>
+                <option value="explain">شرح مفصل كأنّه دكتور</option>
+              </select>
+            </label>
+            <label>لغة المخرجات
+              <select id="summaryLanguage">
+                <option value="bilingual">English terms + شرح عربي</option>
+                <option value="Arabic">العربية</option>
+                <option value="English">English</option>
+              </select>
+            </label>
+            <label>طريقة الدكتور/شكل الامتحان
+              <textarea id="professorStyle" placeholder="مثال: MCQ دقيقة، اختر الخطأ، fill in the blanks، أسئلة وظائف ونتائج..."></textarea>
+            </label>
+            <button id="extractCourseButton" class="secondary-btn" type="button">1. استخراج محتوى الملف</button>
+            <button id="summarizeCourseButton" class="primary-btn" type="button">2. إنشاء الحزمة الدراسية</button>
+          </form>
+
+          <div id="courseExtractionStatus" class="muted"></div>
+          <details>
+            <summary>معاينة النص المستخرج</summary>
+            <textarea id="extractedCourseText" class="extracted-text" placeholder="سيظهر النص المستخرج هنا ويمكنك تعديله قبل الإرسال."></textarea>
+          </details>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2>النتيجة</h2>
+            <div class="hero-actions">
+              <button id="copySummaryButton" class="secondary-btn" type="button">نسخ</button>
+              <button id="downloadSummaryButton" class="secondary-btn" type="button">تنزيل TXT</button>
+              <button id="makeFlashcardsButton" class="secondary-btn" type="button">حفظ كبطاقات</button>
+            </div>
+          </div>
+          <div id="courseSummaryResult" class="course-summary-result">
+            <p class="muted">بعد تفعيل Supabase وOPENAI_API_KEY ستظهر الحزمة الدراسية هنا.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section id="stats" class="page">
       <div class="stats-grid three">
         <article class="card stat-card"><span>📅</span><strong id="weekStudy">0د</strong><small>هذا الأسبوع</small></article>
@@ -427,6 +541,9 @@
   </main>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="cloud.js"></script>
