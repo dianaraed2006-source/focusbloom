@@ -33,6 +33,7 @@
       <button class="nav-link" data-page="stats">📊 <span>الإحصائيات</span></button>
       <button class="nav-link" data-page="achievements">🏆 <span>الإنجازات</span></button>
       <button class="nav-link" data-page="assistant">🤖 <span>مساعد الصيدلة</span></button>
+      <button class="nav-link" data-page="cloud">☁️ <span>الحساب والمزامنة</span></button>
       <button class="nav-link" data-page="profile">👤 <span>الملف الشخصي</span></button>
     </nav>
 
@@ -76,6 +77,7 @@
         <article class="card stat-card"><span>🔥</span><strong id="currentStreak">0 يوم</strong><small>السلسلة الحالية</small></article>
         <article class="card stat-card"><span>💊</span><strong id="drugCount">0</strong><small>أدوية محفوظة</small></article>
         <article class="card stat-card"><span>🧠</span><strong id="flashcardDue">0</strong><small>بطاقات للمراجعة</small></article>
+        <article class="card stat-card"><span>⭐</span><strong id="xpTotal">0 XP</strong><small id="levelLabel">المستوى 1</small></article>
       </div>
 
       <div class="dashboard-grid">
@@ -104,6 +106,17 @@
         <article class="card">
           <div class="card-head"><h2>مراجعة اليوم</h2><button class="text-btn" data-jump="flashcards">ابدئي</button></div>
           <div id="dashboardReview" class="list compact"></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><h2>تقدم الصيدلة</h2><span class="pill">Advanced</span></div>
+          <div id="pharmacyProgress" class="progress-metrics"></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><h2>مستواك</h2><span class="pill" id="xpNextLabel">0 / 500 XP</span></div>
+          <div class="level-orb" id="levelOrb">1</div>
+          <div class="progress"><div id="xpProgress"></div></div>
         </article>
 
         <article class="card span-2">
@@ -197,6 +210,16 @@
           <button class="primary-btn">إضافة الدواء</button>
         </form>
 
+        <div class="card live-fda-card">
+          <div class="card-head">
+            <div><h3>بحث مباشر في النشرة الرسمية الأمريكية</h3><p class="muted">يستخدم openFDA Drug Label API. تحققي من اسم المستحضر والنشرة الحالية.</p></div>
+          </div>
+          <div class="assistant-form">
+            <input id="fdaSearchInput" placeholder="مثال: amoxicillin أو Lipitor">
+            <button id="fdaSearchButton" class="secondary-btn" type="button">بحث openFDA</button>
+          </div>
+          <div id="fdaSearchResult" class="assistant-answer"><p class="muted">لم يتم البحث بعد.</p></div>
+        </div>
         <div id="drugList" class="drug-grid"></div>
       </article>
     </section>
@@ -345,8 +368,37 @@
           <div class="scan-box">
             <input id="medicineImage" type="file" accept="image/*">
             <div id="imagePreview" class="image-preview">📷</div>
-            <p class="muted">هذه النسخة تعرض الصورة فقط. التعرّف التلقائي على الدواء يحتاج API أو خدمة رؤية خارجية.</p>
+            <button id="recognizeMedicine" class="primary-btn" type="button">التعرّف على العبوة</button>
+            <div id="visionResult" class="assistant-answer"><p class="muted">يتطلب تفعيل Supabase Edge Function ومفتاح OpenAI.</p></div>
+            <p class="medical-disclaimer">قد يخطئ التعرف البصري. لا تستخدمي النتيجة لتناول دواء أو تحديد جرعة، وتحققي من العبوة والنشرة والصيدلي.</p>
           </div>
+        </article>
+      </div>
+    </section>
+
+
+    <section id="cloud" class="page">
+      <div class="two-col">
+        <article class="card">
+          <div class="card-head"><h2>الحساب والمزامنة</h2><span id="cloudStatus" class="pill">غير مفعّل</span></div>
+          <p class="muted">بعد ربط Supabase، يمكن حفظ بياناتك ومزامنتها بين الآيباد والهاتف والكمبيوتر.</p>
+          <form id="authForm" class="stack-form">
+            <input id="authEmail" type="email" placeholder="البريد الإلكتروني" required>
+            <input id="authPassword" type="password" minlength="6" placeholder="كلمة المرور" required>
+            <div class="hero-actions">
+              <button id="signUpButton" class="secondary-btn" type="button">إنشاء حساب</button>
+              <button id="signInButton" class="primary-btn" type="button">تسجيل الدخول</button>
+              <button id="signOutButton" class="danger-btn" type="button">تسجيل الخروج</button>
+            </div>
+          </form>
+        </article>
+        <article class="card">
+          <h2>المزامنة</h2>
+          <div class="stack-form">
+            <button id="pushCloudButton" class="primary-btn" type="button">رفع بيانات هذا الجهاز</button>
+            <button id="pullCloudButton" class="secondary-btn" type="button">تنزيل البيانات من السحابة</button>
+          </div>
+          <div class="medical-disclaimer">عند تنزيل البيانات من السحابة سيتم استبدال بيانات الجهاز الحالية بعد التأكيد.</div>
         </article>
       </div>
     </section>
@@ -375,6 +427,9 @@
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="cloud.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

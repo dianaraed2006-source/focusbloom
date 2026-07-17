@@ -47,12 +47,123 @@ function totals(){const td=startOfDay(),wk=startOfWeek();return{total:state.sess
 function streak(){const days=new Set(state.sessions.map(s=>startOfDay(new Date(s.endedAt)).toISOString()));let d=startOfDay(),n=0;if(!days.has(d.toISOString()))d.setDate(d.getDate()-1);while(days.has(d.toISOString())){n++;d.setDate(d.getDate()-1)}return n}
 function subjectMinutes(id){return state.sessions.filter(s=>s.subjectId===id).reduce((a,s)=>a+sessionMinutes(s),0)}
 function plantInfo(total){if(total<30)return{icon:"🌱",stage:"بذرة",next:30,from:0,msg:"ابدئي أول جلسة حتى تنمو نبتتك."};if(total<120)return{icon:"🌿",stage:"برعم",next:120,from:30,msg:"أكملي ساعتين لتصبح نبتة صغيرة."};if(total<600)return{icon:"🪴",stage:"نبتة صغيرة",next:600,from:120,msg:"أكملي 10 ساعات لتتفتح الزهرة."};if(total<3000)return{icon:"🌸",stage:"زهرة",next:3000,from:600,msg:"أكملي 50 ساعة لتصبح شجرة."};return{icon:"🌳",stage:"شجرة",next:total,from:total,msg:"رائع! بنيتِ عادة دراسة قوية."}}
-function nav(page){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===page));document.querySelectorAll(".nav-link").forEach(n=>n.classList.toggle("active",n.dataset.page===page));const titles={dashboard:"مرحبًا بكِ في FocusBloom Pharmacy 👋",timer:"جلسة تركيز",subjects:"مواد الصيدلة","drug-vault":"Drug Vault",flashcards:"Flashcards",quiz:"Quiz Generator",planner:"Study Planner",trainer:"Pharmacy Trainer",stats:"الإحصائيات",achievements:"الإنجازات",assistant:"مساعد الصيدلة",profile:"الملف الشخصي"};$("pageTitle").textContent=titles[page]||"FocusBloom";window.scrollTo({top:0,behavior:"smooth"});if(page==="flashcards")startReview();if(page==="trainer")startTrainer()}
+function nav(page){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===page));
+function firstText(obj, keys){
+  for(const key of keys){
+    const v=obj?.[key];
+    if(Array.isArray(v)&&v.length) return v[0];
+  }
+  return "غير متوفر في هذا السجل";
+}
+async function searchOpenFDA(){
+  const term=$("fdaSearchInput").value.trim();
+  if(!term){toast("اكتبي اسم دواء");return}
+  $("fdaSearchResult").innerHTML="<p>جارٍ البحث…</p>";
+  try{
+    const query=encodeURIComponent(`openfda.generic_name:"${term}" openfda.brand_name:"${term}"`);
+    let url=`https://api.fda.gov/drug/label.json?search=${query}&limit=1`;
+    let res=await fetch(url);
+    if(!res.ok){
+      const loose=encodeURIComponent(term);
+      res=await fetch(`https://api.fda.gov/drug/label.json?search=openfda.generic_name:${loose}+openfda.brand_name:${loose}&limit=1`);
+    }
+    const data=await res.json();
+    if(!res.ok||!data.results?.length) throw new Error(data?.error?.message||"لم يتم العثور على نتيجة");
+    const d=data.results[0];
+    $("fdaSearchResult").innerHTML=`
+      <h3>${esc(d.openfda?.generic_name?.[0]||d.openfda?.brand_name?.[0]||term)}</h3>
+      <div class="fda-section"><strong>Indications:</strong><p>${esc(firstText(d,["indications_and_usage","purpose"]))}</p></div>
+      <div class="fda-section"><strong>Warnings:</strong><p>${esc(firstText(d,["boxed_warning","warnings","warnings_and_cautions"]))}</p></div>
+      <div class="fda-section"><strong>Adverse reactions:</strong><p>${esc(firstText(d,["adverse_reactions"]))}</p></div>
+      <div class="fda-section"><strong>Drug interactions:</strong><p>${esc(firstText(d,["drug_interactions"]))}</p></div>
+      <div class="fda-section"><strong>Pregnancy:</strong><p>${esc(firstText(d,["pregnancy","pregnancy_or_breast_feeding"]))}</p></div>
+      <div class="fda-section"><strong>Pediatric use:</strong><p>${esc(firstText(d,["pediatric_use"]))}</p></div>
+      <div class="fda-section"><strong>Geriatric use:</strong><p>${esc(firstText(d,["geriatric_use"]))}</p></div>
+      <p class="medical-disclaimer">هذه بيانات نشرة FDA وقد تختلف بين الشركات والمستحضرات. لا تعتمد عليها وحدها لاتخاذ قرار علاجي.</p>`;
+  }catch(e){
+    $("fdaSearchResult").innerHTML=`<p>${esc(e.message)}</p>`;
+  }
+}
+
+async function updateCloudStatus(){
+  const el=$("cloudStatus");
+  if(!window.FocusBloomCloud?.configured()){el.textContent="يحتاج إعداد";return}
+  try{
+    const user=await window.FocusBloomCloud.getUser();
+    el.textContent=user?`متصل: ${user.email}`:"غير مسجل";
+  }catch{el.textContent="خطأ في الاتصال"}
+}
+async function signUpCloud(){
+  try{await window.FocusBloomCloud.signUp($("authEmail").value,$("authPassword").value);toast("تم إنشاء الحساب. افحصي البريد إذا كان التأكيد مفعّلًا");updateCloudStatus()}catch(e){toast(e.message)}
+}
+async function signInCloud(){
+  try{await window.FocusBloomCloud.signIn($("authEmail").value,$("authPassword").value);toast("تم تسجيل الدخول");updateCloudStatus()}catch(e){toast(e.message)}
+}
+async function signOutCloud(){
+  try{await window.FocusBloomCloud.signOut();toast("تم تسجيل الخروج");updateCloudStatus()}catch(e){toast(e.message)}
+}
+async function pushCloud(){
+  try{await window.FocusBloomCloud.pushState(state);toast("تم رفع البيانات إلى السحابة")}catch(e){toast(e.message)}
+}
+async function pullCloud(){
+  try{
+    const data=await window.FocusBloomCloud.pullState();
+    if(!data?.state){toast("لا توجد نسخة سحابية");return}
+    if(!confirm("سيتم استبدال بيانات هذا الجهاز. متابعة؟"))return;
+    state=data.state;save();render();toast("تم تنزيل البيانات")
+  }catch(e){toast(e.message)}
+}
+let latestMedicineImage=null;
+async function recognizeMedicine(){
+  if(!latestMedicineImage){toast("اختاري صورة أولًا");return}
+  $("visionResult").innerHTML="<p>جارٍ تحليل الصورة…</p>";
+  try{
+    const name=(window.FOCUS_BLOOM_CONFIG||{}).VISION_FUNCTION_NAME||"medicine-vision";
+    const data=await window.FocusBloomCloud.invoke(name,{imageDataUrl:latestMedicineImage});
+    $("visionResult").innerHTML=`<pre style="white-space:pre-wrap">${esc(data.result||JSON.stringify(data,null,2))}</pre>`;
+  }catch(e){$("visionResult").innerHTML=`<p>${esc(e.message)}</p>`}
+}
+
+document.querySelectorAll(".nav-link").forEach(n=>n.classList.toggle("active",n.dataset.page===page));const titles={dashboard:"مرحبًا بكِ في FocusBloom Pharmacy 👋",timer:"جلسة تركيز",subjects:"مواد الصيدلة","drug-vault":"Drug Vault",flashcards:"Flashcards",quiz:"Quiz Generator",planner:"Study Planner",trainer:"Pharmacy Trainer",stats:"الإحصائيات",achievements:"الإنجازات",assistant:"مساعد الصيدلة",cloud:"الحساب والمزامنة",profile:"الملف الشخصي"};$("pageTitle").textContent=titles[page]||"FocusBloom";window.scrollTo({top:0,behavior:"smooth"});if(page==="flashcards")startReview();if(page==="trainer")startTrainer()}
 function render(){applyTheme();renderProfile();renderOptions();renderDashboard();renderSubjects();renderDrugs();renderFlashcards();renderSessions();renderPlans();renderTrainerMistakes();renderStats();renderAchievements()}
 function applyTheme(){document.body.classList.toggle("dark",state.settings.dark);$("themeToggle").textContent=state.settings.dark?"☀️ الوضع الفاتح":"🌙 الوضع الداكن"}
 function renderProfile(){const p=state.profile,initial=(p.name||"D").trim().charAt(0).toUpperCase();$("miniAvatar").textContent=$("profileAvatar").textContent=initial;$("miniName").textContent=$("profileDisplayName").textContent=p.name;$("miniMajor").textContent=$("profileDisplayMajor").textContent=p.major;$("profileDisplayUniversity").textContent=p.university;$("profileName").value=p.name;$("profileMajor").value=p.major;$("profileUniversity").value=p.university;$("dailyGoal").value=state.settings.dailyGoal}
 function renderOptions(){const opts=state.subjects.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");["timerSubject","taskSubject","flashSubject","planSubject"].forEach(id=>$(id).innerHTML=(id==="taskSubject"?'<option value="">بدون مادة</option>':"")+opts);$("timerTask").innerHTML='<option value="">بدون مهمة</option>'+state.tasks.filter(t=>!t.completed).map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join("")}
-function renderDashboard(){const t=totals(),p=plantInfo(t.total);$("todayFocus").textContent=fmt(t.today);$("currentStreak").textContent=`${streak()} يوم`;$("drugCount").textContent=state.drugs.length;const due=getDueFlashcards();$("flashcardDue").textContent=due.length;$("plantVisual").textContent=p.icon;$("plantStage").textContent=p.stage;$("plantMessage").textContent=p.msg;$("plantLevel").textContent=`المستوى ${Math.floor(t.total/600)+1}`;const prog=p.next===p.from?100:Math.min(100,((t.total-p.from)/(p.next-p.from))*100);$("plantProgress").style.width=`${prog}%`;$("plantNext").textContent=p.next===p.from?"وصلتِ لأعلى مرحلة":`${fmt(p.next-t.total)} للمرحلة التالية`;$("dashboardSubjects").innerHTML=state.subjects.slice(0,4).map(s=>`<div class="item"><span><b style="color:${s.color}">●</b> ${esc(s.name)}</span><strong>${fmt(subjectMinutes(s.id))}</strong></div>`).join("");$("dashboardReview").innerHTML=due.length?due.slice(0,4).map(f=>`<div class="item"><span>${esc(f.front)}</span><span class="pill">مستحقة</span></div>`).join(""):'<div class="muted">لا توجد بطاقات مستحقة.</div>';renderWeeklyBars();$("weekTotalPill").textContent=fmt(t.week);renderChallenge()}
+
+function calculateXP(){
+  const t=totals();
+  const mastered=state.drugs.filter(d=>d.mastery==="mastered").length;
+  const reviewed=state.flashcards.filter(f=>f.interval>0).length;
+  const quizzes=state.quizHistory.length;
+  const plans=state.plans.length;
+  const challengeXP=state.completedChallenges.length*40;
+  return Math.round(t.total*2 + mastered*50 + reviewed*15 + quizzes*60 + plans*40 + challengeXP);
+}
+function levelInfo(){
+  const xp=calculateXP(),perLevel=500,level=Math.floor(xp/perLevel)+1,inLevel=xp%perLevel;
+  return {xp,level,inLevel,perLevel};
+}
+function renderAdvancedProgress(){
+  const mastered=state.drugs.filter(d=>d.mastery==="mastered").length;
+  const totalDrugs=Math.max(1,state.drugs.length);
+  const reviewed=state.flashcards.filter(f=>f.interval>0).length;
+  const totalCards=Math.max(1,state.flashcards.length);
+  const quizAvg=state.quizHistory.length?Math.round(state.quizHistory.reduce((a,q)=>a+q.score,0)/state.quizHistory.length):0;
+  const rows=[
+    ["إتقان الأدوية",Math.round(mastered/totalDrugs*100)],
+    ["مراجعة البطاقات",Math.round(reviewed/totalCards*100)],
+    ["متوسط الاختبارات",quizAvg]
+  ];
+  $("pharmacyProgress").innerHTML=rows.map(r=>`<div class="metric-line"><span>${r[0]}</span><div class="progress"><div style="width:${r[1]}%"></div></div><strong>${r[1]}%</strong></div>`).join("");
+  const l=levelInfo();
+  $("xpTotal").textContent=`${l.xp} XP`;
+  $("levelLabel").textContent=`المستوى ${l.level}`;
+  $("levelOrb").textContent=l.level;
+  $("xpNextLabel").textContent=`${l.inLevel} / ${l.perLevel} XP`;
+  $("xpProgress").style.width=`${l.inLevel/l.perLevel*100}%`;
+}
+
+function renderDashboard(){const t=totals(),p=plantInfo(t.total);$("todayFocus").textContent=fmt(t.today);$("currentStreak").textContent=`${streak()} يوم`;$("drugCount").textContent=state.drugs.length;const due=getDueFlashcards();$("flashcardDue").textContent=due.length;$("plantVisual").textContent=p.icon;$("plantStage").textContent=p.stage;$("plantMessage").textContent=p.msg;$("plantLevel").textContent=`المستوى ${Math.floor(t.total/600)+1}`;const prog=p.next===p.from?100:Math.min(100,((t.total-p.from)/(p.next-p.from))*100);$("plantProgress").style.width=`${prog}%`;$("plantNext").textContent=p.next===p.from?"وصلتِ لأعلى مرحلة":`${fmt(p.next-t.total)} للمرحلة التالية`;$("dashboardSubjects").innerHTML=state.subjects.slice(0,4).map(s=>`<div class="item"><span><b style="color:${s.color}">●</b> ${esc(s.name)}</span><strong>${fmt(subjectMinutes(s.id))}</strong></div>`).join("");$("dashboardReview").innerHTML=due.length?due.slice(0,4).map(f=>`<div class="item"><span>${esc(f.front)}</span><span class="pill">مستحقة</span></div>`).join(""):'<div class="muted">لا توجد بطاقات مستحقة.</div>';renderWeeklyBars();$("weekTotalPill").textContent=fmt(t.week);renderChallenge();renderAdvancedProgress()}
 function renderChallenge(){const list=[["احفظي 5 أدوية","أضيفي أو راجعي خمس مواد فعالة اليوم."],["راجعي 10 Flashcards","جلسة مراجعة سريعة بالتكرار المتباعد."],["ادرسي 50 دقيقة","استخدمي وضع 50/10 لمادة صعبة."],["اختبار الفئات","حاولي الحصول على 80% في Pharmacy Trainer."],["راجعي أخطاءك","افتحي قائمة الأخطاء السابقة وراجعيها."]];if(state.challengeDate!==todayISO()){state.challengeDate=todayISO();state.challengeIndex=new Date().getDate()%list.length;save()}const c=list[state.challengeIndex];$("dailyChallengeTitle").textContent=c[0];$("dailyChallengeText").textContent=c[1];const done=state.completedChallenges.includes(todayISO());$("completeChallenge").textContent=done?"تم الإنجاز ✅":"تم الإنجاز";$("completeChallenge").disabled=done}
 function renderWeeklyBars(){const labels=["أحد","اثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"],days=[];for(let i=6;i>=0;i--){const d=startOfDay();d.setDate(d.getDate()-i);const n=new Date(d);n.setDate(n.getDate()+1);const m=state.sessions.filter(s=>{const x=new Date(s.endedAt);return x>=d&&x<n}).reduce((a,s)=>a+sessionMinutes(s),0);days.push({label:labels[d.getDay()],minutes:m})}const max=Math.max(1,...days.map(d=>d.minutes));$("weeklyBars").innerHTML=days.map(d=>`<div class="day-bar"><strong>${d.minutes?fmt(d.minutes):""}</strong><div class="bar" style="height:${Math.max(6,d.minutes/max*120)}px"></div><small>${d.label}</small></div>`).join("")}
 function renderSubjects(){$("subjectsCount").textContent=`${state.subjects.length} مواد`;$("subjectsList").innerHTML=state.subjects.map(s=>{const m=subjectMinutes(s.id),target=(s.targetHours||0)*60,p=target?Math.min(100,m/target*100):0;return`<div class="card subject-card"><div class="subject-color" style="background:${s.color}"></div><div><div class="card-head"><strong>${esc(s.name)}</strong><small>${fmt(m)}</small></div><div class="progress subject-progress"><div style="width:${p}%;background:${s.color}"></div></div><small class="muted">${s.slides?`${s.slides} سلايد · `:""}${target?`${Math.round(p)}% من الهدف`:"لا يوجد هدف"}</small></div><button class="danger-btn" onclick="deleteSubject('${s.id}')">حذف</button></div>`}).join("")}
@@ -110,6 +221,83 @@ function achievements(){const t=totals(),s=streak(),mastered=state.drugs.filter(
 ]}
 function renderAchievements(){const a=achievements(),count=a.filter(x=>x[3]).length;$("achievementSummary").textContent=`${count} / ${a.length}`;$("achievementGrid").innerHTML=a.map(x=>`<div class="achievement ${x[3]?"":"locked"}"><div class="achievement-icon">${x[0]}</div><h3>${x[1]}</h3><p class="muted">${x[2]}</p><strong>${x[3]?"تم الفتح ✅":"مقفل 🔒"}</strong></div>`).join("")}
 
+
+function firstText(obj, keys){
+  for(const key of keys){
+    const v=obj?.[key];
+    if(Array.isArray(v)&&v.length) return v[0];
+  }
+  return "غير متوفر في هذا السجل";
+}
+async function searchOpenFDA(){
+  const term=$("fdaSearchInput").value.trim();
+  if(!term){toast("اكتبي اسم دواء");return}
+  $("fdaSearchResult").innerHTML="<p>جارٍ البحث…</p>";
+  try{
+    const query=encodeURIComponent(`openfda.generic_name:"${term}" openfda.brand_name:"${term}"`);
+    let url=`https://api.fda.gov/drug/label.json?search=${query}&limit=1`;
+    let res=await fetch(url);
+    if(!res.ok){
+      const loose=encodeURIComponent(term);
+      res=await fetch(`https://api.fda.gov/drug/label.json?search=openfda.generic_name:${loose}+openfda.brand_name:${loose}&limit=1`);
+    }
+    const data=await res.json();
+    if(!res.ok||!data.results?.length) throw new Error(data?.error?.message||"لم يتم العثور على نتيجة");
+    const d=data.results[0];
+    $("fdaSearchResult").innerHTML=`
+      <h3>${esc(d.openfda?.generic_name?.[0]||d.openfda?.brand_name?.[0]||term)}</h3>
+      <div class="fda-section"><strong>Indications:</strong><p>${esc(firstText(d,["indications_and_usage","purpose"]))}</p></div>
+      <div class="fda-section"><strong>Warnings:</strong><p>${esc(firstText(d,["boxed_warning","warnings","warnings_and_cautions"]))}</p></div>
+      <div class="fda-section"><strong>Adverse reactions:</strong><p>${esc(firstText(d,["adverse_reactions"]))}</p></div>
+      <div class="fda-section"><strong>Drug interactions:</strong><p>${esc(firstText(d,["drug_interactions"]))}</p></div>
+      <div class="fda-section"><strong>Pregnancy:</strong><p>${esc(firstText(d,["pregnancy","pregnancy_or_breast_feeding"]))}</p></div>
+      <div class="fda-section"><strong>Pediatric use:</strong><p>${esc(firstText(d,["pediatric_use"]))}</p></div>
+      <div class="fda-section"><strong>Geriatric use:</strong><p>${esc(firstText(d,["geriatric_use"]))}</p></div>
+      <p class="medical-disclaimer">هذه بيانات نشرة FDA وقد تختلف بين الشركات والمستحضرات. لا تعتمد عليها وحدها لاتخاذ قرار علاجي.</p>`;
+  }catch(e){
+    $("fdaSearchResult").innerHTML=`<p>${esc(e.message)}</p>`;
+  }
+}
+
+async function updateCloudStatus(){
+  const el=$("cloudStatus");
+  if(!window.FocusBloomCloud?.configured()){el.textContent="يحتاج إعداد";return}
+  try{
+    const user=await window.FocusBloomCloud.getUser();
+    el.textContent=user?`متصل: ${user.email}`:"غير مسجل";
+  }catch{el.textContent="خطأ في الاتصال"}
+}
+async function signUpCloud(){
+  try{await window.FocusBloomCloud.signUp($("authEmail").value,$("authPassword").value);toast("تم إنشاء الحساب. افحصي البريد إذا كان التأكيد مفعّلًا");updateCloudStatus()}catch(e){toast(e.message)}
+}
+async function signInCloud(){
+  try{await window.FocusBloomCloud.signIn($("authEmail").value,$("authPassword").value);toast("تم تسجيل الدخول");updateCloudStatus()}catch(e){toast(e.message)}
+}
+async function signOutCloud(){
+  try{await window.FocusBloomCloud.signOut();toast("تم تسجيل الخروج");updateCloudStatus()}catch(e){toast(e.message)}
+}
+async function pushCloud(){
+  try{await window.FocusBloomCloud.pushState(state);toast("تم رفع البيانات إلى السحابة")}catch(e){toast(e.message)}
+}
+async function pullCloud(){
+  try{
+    const data=await window.FocusBloomCloud.pullState();
+    if(!data?.state){toast("لا توجد نسخة سحابية");return}
+    if(!confirm("سيتم استبدال بيانات هذا الجهاز. متابعة؟"))return;
+    state=data.state;save();render();toast("تم تنزيل البيانات")
+  }catch(e){toast(e.message)}
+}
+let latestMedicineImage=null;
+async function recognizeMedicine(){
+  if(!latestMedicineImage){toast("اختاري صورة أولًا");return}
+  $("visionResult").innerHTML="<p>جارٍ تحليل الصورة…</p>";
+  try{
+    const name=(window.FOCUS_BLOOM_CONFIG||{}).VISION_FUNCTION_NAME||"medicine-vision";
+    const data=await window.FocusBloomCloud.invoke(name,{imageDataUrl:latestMedicineImage});
+    $("visionResult").innerHTML=`<pre style="white-space:pre-wrap">${esc(data.result||JSON.stringify(data,null,2))}</pre>`;
+  }catch(e){$("visionResult").innerHTML=`<p>${esc(e.message)}</p>`}
+}
+
 document.querySelectorAll(".nav-link").forEach(b=>b.onclick=()=>nav(b.dataset.page));
 document.querySelectorAll("[data-jump]").forEach(b=>b.onclick=()=>nav(b.dataset.jump));
 $("todayDate").textContent=new Date().toLocaleDateString("ar-JO",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
@@ -150,8 +338,25 @@ document.querySelectorAll("[data-trainer]").forEach(b=>b.onclick=()=>{document.q
 $("nextTrainer").onclick=startTrainer;
 window.answerTrainer=answerTrainer;
 
-$("assistantForm").onsubmit=e=>{e.preventDefault();const q=$("assistantInput").value.trim().toLowerCase();const matches=state.drugs.filter(d=>[d.generic,d.brand,d.drugClass].join(" ").toLowerCase().includes(q));$("assistantAnswer").innerHTML=matches.length?matches.map(d=>`<div class="drug-card mastery-${d.mastery}"><h3>${esc(d.generic)}</h3><p><strong>Class:</strong> ${esc(d.drugClass)}</p><p><strong>Use:</strong> ${esc(d.use||"—")}</p><p><strong>Pregnancy:</strong> ${esc(d.pregnancy||"—")}</p><p><strong>Children:</strong> ${esc(d.children||"—")}</p><p><strong>Elderly:</strong> ${esc(d.elderly||"—")}</p><p><strong>Side effects:</strong> ${esc(d.sideEffects||"—")}</p><p><strong>Warnings:</strong> ${esc(d.warnings||"—")}</p><p><strong>Interactions:</strong> ${esc(d.interactions||"—")}</p><p><strong>Monitoring:</strong> ${esc(d.monitoring||"—")}</p><p><strong>Mnemonic:</strong> ${esc(d.mnemonic||"—")}</p><p class="source-note"><strong>Source:</strong> ${esc(d.source||"Official product labeling")}</p></div>`).join(""):'<p>لم أجد نتيجة في Drug Vault. أضيفي الدواء أولًا.</p>'};
-$("medicineImage").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$("imagePreview").innerHTML=`<img src="${r.result}" alt="Medicine preview">`};r.readAsDataURL(f)};
+$("assistantForm").onsubmit=async e=>{
+  e.preventDefault();
+  const raw=$("assistantInput").value.trim(),q=raw.toLowerCase();
+  $("assistantAnswer").innerHTML="<p>جارٍ التحليل…</p>";
+  try{
+    if(window.FocusBloomCloud?.configured()){
+      const fn=(window.FOCUS_BLOOM_CONFIG||{}).AI_FUNCTION_NAME||"pharmacy-ai";
+      const context=state.drugs.filter(d=>[d.generic,d.brand,d.drugClass].join(" ").toLowerCase().includes(q)).slice(0,8);
+      const data=await window.FocusBloomCloud.invoke(fn,{question:raw,drugContext:context});
+      $("assistantAnswer").innerHTML=`<div style="white-space:pre-wrap">${esc(data.answer||JSON.stringify(data,null,2))}</div>`;
+      return;
+    }
+  }catch(err){
+    console.warn("AI fallback:",err);
+  }
+  const matches=state.drugs.filter(d=>[d.generic,d.brand,d.drugClass].join(" ").toLowerCase().includes(q));
+  $("assistantAnswer").innerHTML=matches.length?matches.map(d=>`<div class="drug-card mastery-${d.mastery}"><h3>${esc(d.generic)}</h3><p><strong>Class:</strong> ${esc(d.drugClass)}</p><p><strong>Use:</strong> ${esc(d.use||"—")}</p><p><strong>Pregnancy:</strong> ${esc(d.pregnancy||"—")}</p><p><strong>Children:</strong> ${esc(d.children||"—")}</p><p><strong>Elderly:</strong> ${esc(d.elderly||"—")}</p><p><strong>Side effects:</strong> ${esc(d.sideEffects||"—")}</p><p><strong>Warnings:</strong> ${esc(d.warnings||"—")}</p><p><strong>Interactions:</strong> ${esc(d.interactions||"—")}</p><p><strong>Monitoring:</strong> ${esc(d.monitoring||"—")}</p><p><strong>Mnemonic:</strong> ${esc(d.mnemonic||"—")}</p><p class="source-note"><strong>Source:</strong> ${esc(d.source||"Official product labeling")}</p></div>`).join(""):'<p>لم أجد نتيجة في Drug Vault، والذكاء الاصطناعي السحابي غير مفعّل.</p>'
+};
+$("medicineImage").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{latestMedicineImage=r.result;$("imagePreview").innerHTML=`<img src="${r.result}" alt="Medicine preview">`};r.readAsDataURL(f)};
 
 $("profileForm").onsubmit=e=>{e.preventDefault();state.profile={name:$("profileName").value.trim(),major:$("profileMajor").value.trim(),university:$("profileUniversity").value.trim()};state.settings.dailyGoal=Math.max(10,Number($("dailyGoal").value)||120);save();render();toast("تم حفظ التغييرات")};
 
@@ -166,4 +371,11 @@ function finishTimer(){let sec=timerMode==="stopwatch"?timerSeconds:modeSeconds(
 function resetTimer(){clearInterval(timerInterval);timerRunning=false;stopwatchBase=0;stopwatchStartedAt=null;timerSeconds=modeSeconds();$("timerStatus").textContent="جاهزة للتركيز";updateTimer()}
 function saveSession(sec){state.sessions.push({id:crypto.randomUUID(),subjectId:$("timerSubject").value,taskId:$("timerTask").value,durationSeconds:sec,mode:timerMode,endedAt:new Date().toISOString()});save();render()}
 
-render();updateTimer();startReview();startTrainer();
+$("fdaSearchButton").onclick=searchOpenFDA;
+$("recognizeMedicine").onclick=recognizeMedicine;
+$("signUpButton").onclick=signUpCloud;
+$("signInButton").onclick=signInCloud;
+$("signOutButton").onclick=signOutCloud;
+$("pushCloudButton").onclick=pushCloud;
+$("pullCloudButton").onclick=pullCloud;
+render();updateTimer();startReview();startTrainer();updateCloudStatus();

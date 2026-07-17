@@ -43,3 +43,33 @@
 - Uses cautious educational wording rather than absolute “safe/unsafe” claims.
 - Primary reference basis: FDA/DailyMed official product labeling.
 - Always verify the current official label and local clinical guidance.
+
+
+# FocusBloom Pharmacy 2.0
+
+## يعمل مباشرة بدون إعداد
+- Drug Vault ومعلومات السلامة.
+- بحث حي في openFDA Drug Label API.
+- لوحة تقدم متقدمة.
+- نظام XP ومستويات.
+- كل الميزات المحلية السابقة.
+
+## يحتاج إعداد Supabase
+- إنشاء حساب وتسجيل دخول.
+- حفظ البيانات ومزامنتها بين الأجهزة.
+- مساعد صيدلة بالذكاء الاصطناعي.
+- التعرف على عبوة الدواء من الصورة.
+
+## خطوات تفعيل Supabase
+1. أنشئي مشروعًا في Supabase.
+2. افتحي SQL Editor وشغّلي `supabase/schema.sql`.
+3. انسخي Project URL وPublishable/Anon Key إلى `config.js`.
+4. أنشئي Edge Function باسم `pharmacy-ai` والصقي ملف:
+   `supabase/functions/pharmacy-ai/index.ts`
+5. أنشئي Edge Function باسم `medicine-vision` والصقي ملف:
+   `supabase/functions/medicine-vision/index.ts`
+6. أضيفي secret باسم `OPENAI_API_KEY` داخل Supabase Edge Functions Secrets.
+7. لا تضعي مفتاح OpenAI داخل GitHub أو `config.js`.
+
+## تنبيه
+المساعد والتعرف على الصورة أدوات تعليمية وقد تخطئ، ولا يجوز استخدامها للتشخيص أو تحديد العلاج أو الجرعة.
