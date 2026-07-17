@@ -145,3 +145,10 @@
 
 مع Secret:
 `OPENAI_API_KEY`
+
+# Version 3.3 Critical Fix
+- Removed an old duplicated curriculum script that overrode the new curriculum.
+- Years 1 and 2 now render correctly.
+- Semester accordions and + course buttons now use the requested layout.
+- Added cache-busted files `app-v33.js` and `styles-v33.css` so Safari/GitHub Pages loads the new version.
+- The page displays a visible `v3.3` marker for confirmation.
